@@ -1,0 +1,39 @@
+{
+  "name": "python-spellbook",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "A browser game for learning Python. Learn a line, then write it from memory in three different situations.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@vitejs/plugin-react": "^6.0.5",
+    "eslint": "^10.8.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.9.0",
+    "jsdom": "^30.0.1",
+    "vite": "^8.2.1",
+    "vitest": "^4.1.10"
+  },
+  "license": "MIT",
+  "author": "Bella Allegri",
+  "keywords": [
+    "python",
+    "learning",
+    "education",
+    "game",
+    "browser-game",
+    "react",
+    "vite"
+  ]
+}
