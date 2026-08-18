@@ -2,6 +2,8 @@
 
 A browser game for learning to write Python. You get an empty spellbook and fill it a page at a time. A page only fills in once you can write that line from memory in three different contexts, because recognizing code and being able to write it are not the same skill.
 
+Play it in your browser: [bmallegri.github.io/python-spellbook](https://bmallegri.github.io/python-spellbook)
+
 ![The spellbook](docs/screenshot.png)
 
 ## How it works
