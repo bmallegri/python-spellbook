@@ -36,7 +36,7 @@ Still owe this section the actual moment that set the whole thing off. I know wh
 Witch Hat Atelier, mostly, where the drawing is the spell instead of decoration sitting on top of it.
 That maps onto code almost too cleanly. Little Witch Academia for the shape of an apprentice and a teacher,
 and Madoka for labyrinths as bounded set-pieces. Omori for smudged monochrome opening into color,
-which is where the locked pages came from; an unlearnable spell isn't greyed out and disabled, it is
+which is where the locked pages came from; an unlearnable spell isn't grayed out and disabled, it is
 smudged ink you can't read yet.
 
 The theme carries weight I couldn't get any other way. Learning to code is demoralizing for reasons
@@ -264,7 +264,7 @@ bottom line, which was already sitting empty on locked cards.
 
 Five buttons ended up with a duplicate `className`, reading `className="btn" ... className="arc"` on the
 modal close and cancel controls. React keeps the last one and says nothing, so those five lost `.btn`,
-which means no `cursor: pointer` and the browser's default border and grey background coming back. It parses fine and it runs fine, so the only way you catch it is by looking at the thing.
+which means no `cursor: pointer` and the browser's default border and gray background coming back. It parses fine and it runs fine, so the only way you catch it is by looking at the thing.
 
 Five JSX conditionals ended up empty, `{locked && }` and things like it, wherever an icon had been the
 entire contents of a condition. Useful signal on its own: those five states had no text in them at all.
@@ -284,7 +284,7 @@ and run anything random enough times to actually hit the rare branch.
 ## Making it legible to other people
 
 The last pass was about the repo rather than the game. A peer skimming GitHub reads the furniture
-before they read a word of the code, and this had almost none of it: no licence, no CI, no lint
+before they read a word of the code, and this had almost none of it: no license, no CI, no lint
 config, no tests, no demo.
 
 Tests were the most useful thing I added, and not for the reason I expected. They check the content,
@@ -314,10 +314,10 @@ to survive one question, which is whether it informs the player or manipulates t
 
 Measuring the project against that found more than I expected.
 
-Colour was the biggest miss. I had eleven school accents, and they were pure decoration; the colour
+Color was the biggest miss. I had eleven school accents, and they were pure decoration; the color
 told you which chapter a spell lived in, which you could already read off the heading. Meanwhile the
-thing colour should have been reporting, what the app believes about your grasp of a spell, had no
-colour at all. So the school hues are gone. There are two accents now and each one means exactly one
+thing color should have been reporting, what the app believes about your grasp of a spell, had no
+color at all. So the school hues are gone. There are two accents now and each one means exactly one
 thing: tide, a coastal water blue, for solid and known and interactive, and brass for still forming.
 A single `stateInk()` decides every accent in the interface. The bases went from tea-stained
 parchment to fog paper and graphite, because "sea fog, coastal water, graphite, paper, brass" is the
@@ -387,7 +387,7 @@ the split needed a brace matcher rather than a line range. It's `src/content.js`
 componentisation is still not worth it; that's churn with regression risk and no reader benefit.
 
 Two things fell out of the split that I wouldn't have found otherwise. `GRAIN_CSS` still hardcoded
-`#e6dcc4`, the parchment ground from two palettes ago, so the paper grain was being drawn in a colour
+`#e6dcc4`, the parchment ground from two palettes ago, so the paper grain was being drawn in a color
 that no longer existed anywhere else. And `jsdom` wasn't a declared dependency at all; the render
 tests ask for it by name in a vitest pragma and it only resolved because vitest happens to pull it in
 transitively. That works until a patch release changes the tree, at which point CI breaks for reasons
