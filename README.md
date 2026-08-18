@@ -27,6 +27,6 @@ npm run dev
 
 All the content is one file, `src/content.js`, and nothing in it knows about React. A spell is one object plus three worked examples: three different situations, not one example reworded three times. `npm test` tells you if a spell is missing a hook or points at a prerequisite that isn't there.
 
-## Licence
+## License
 
 MIT. See [LICENSE](LICENSE). [design-history.md](design-history.md) is the longer version: what I tried, what I threw out, and what's still broken.
