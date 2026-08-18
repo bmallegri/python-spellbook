@@ -1,12 +1,8 @@
-/* All the content lives here: the spells, their worked examples, the duel cards
-   and the palette. Nothing in this file knows anything about React, so adding a
-   spell means editing one array and never touching the interface. */
+// All the game content. No React in here.
 
-// A school is a chapter, not a colour. State is what earns an accent.
 export const KNOWN = "#2c6273";   // tide
 export const FORMING = "#7a5d22"; // brass
 
-// The only rule for accent colour anywhere in the interface.
 export function stateInk(state) {
   if (state === "inscribed") return KNOWN;
   if (state === "locked") return "#5f6570";
@@ -19,10 +15,9 @@ export const INK = {
   text: "#22262b", dim: "#4c5158", faint: "#5f6570",
   onAccent: "#f1eee6",
   vellum: "#ded9cb", vellumInk: "#22262b", vellumEdge: "#c7c0b0",
-  tide: "#2c6273", brass: "#7a5d22", rust: "#8a3f2f", moss: "#4a6146",
-  // held for call sites that have not been read yet
-  candle: "#7a5d22", verdigris: "#2c6273", madder: "#8a3f2f",
-  oxblood: "#8a3f2f", terreVerte: "#4a6146", chai: "#7a5d22",
+  brass: "#7a5d22",
+  // older names, still what most of the interface calls these
+  candle: "#7a5d22", verdigris: "#2c6273", oxblood: "#8a3f2f", terreVerte: "#4a6146",
 };
 
 export const SCHOOL = {
@@ -32,7 +27,7 @@ export const SCHOOL = {
   artifice: { name: "Conjuration", color: KNOWN, blurb: "Things that keep working after you walk away." },
 };
 
-/* say: the line read aloud. image: what to picture. when: the trigger to reach for it. */
+// say = read it aloud, image = what to picture, when = when to reach for it
 export const SPELL = [
   { id: "varibuddy", name: "Variables", school: "inscription", rank: 1,
     real: "Variables, types & f-strings",
@@ -477,7 +472,6 @@ export const ACTS = [
   { school: "artifice", numeral: "IV", title: "What Lasts" },
 ];
 
-// what clearing each labyrinth actually got you, said plainly
 export const LAB_NOTE = {
   threshold: "You can read and write basic Python without looking anything up.",
   automaton: "That script runs at three in the morning with nobody watching it.",
@@ -542,7 +536,7 @@ export const SPELL_HANDS = {
   ],
   varibuddy: [
     { ctx: "Games", code: 'hero = "Luna"\nprint(f"{hero} wins the match")', note: "Store a value under a name, then drop it into a sentence with an f-string.", runes: ["hero", "=", '"Luna"'] },
-    { ctx: "Everyday", code: 'age = 19\nprint(f"You are {age} today")', note: "Numbers work the same way; {age} pours the value into the text.", runes: ["print", "(", 'f"You are {age}"', ")"] },
+    { ctx: "Everyday", code: 'age = 19\nprint(f"You are {age} today")', note: "Numbers work the same way; {age} pours the value into the text.", runes: ["print", "(", 'f"You are {age} today"', ")"] },
     { ctx: "Money", code: 'price = 4.5\nprint(f"Costs ${price:.2f}")', note: "The :.2f formats a number to two decimals. Perfect for prices.", runes: ["price", "=", "4.5"] },
   ],
   condifork: [
@@ -577,7 +571,7 @@ export const SPELL_HANDS = {
   ],
   pathio: [
     { ctx: "Read", code: 'text = Path("laps.txt").read_text()', note: "Open a file and pull all its text in a single stroke.", runes: ["text", "=", 'Path("laps.txt")', ".read_text()"] },
-    { ctx: "Write", code: 'Path("out.txt").write_text("done")', note: "The same doorway works outward. Writing text to a file.", runes: ['Path("out.txt")', ".write_text", "(", '"inked"', ")"] },
+    { ctx: "Write", code: 'Path("out.txt").write_text("done")', note: "The same doorway works outward. Writing text to a file.", runes: ['Path("out.txt")', ".write_text", "(", '"done"', ")"] },
     { ctx: "JSON", code: 'import json\ndata = json.loads(raw)', note: "json.loads turns a JSON string into a Python dict or list.", runes: ["data", "=", "json.loads", "(", "raw", ")"] },
   ],
   genryu: [
