@@ -5,27 +5,19 @@ import {
   TIERS, CARDS, ENEMIES, WORK_SCHOOL, WORK, TRADE_HANDS,
 } from "./content.js";
 
-/* Python Spellbook. Learn a line, then write it from memory in three different contexts.
-   Loop: read a spell, put its tokens in order to inscribe it, collect a kit,
-   take the kit into a Labyrinth. Every spell carries say / image / when. */
-
 const GRAIN_CSS = `.ground { background-color: #e7e3d9; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/></filter><rect width='160' height='160' filter='url(%23g)' opacity='0.055'/></svg>"); }`;
 
 const SAVE_KEY = "spellbook.save.v1";
-// localStorage throws in private mode and returns junk after a bad write
+// throws in private mode, returns junk after a failed write
 function readGrimoire() {
   try { return JSON.parse(localStorage.getItem(SAVE_KEY)) || {}; } catch { return {}; }
 }
 function writeGrimoire(state) {
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch { /* private mode, quota, nothing we can do */ }
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch { /* private mode or quota */ }
 }
 function burnGrimoire() {
-  try { localStorage.removeItem(SAVE_KEY); } catch { /* private mode, quota, nothing we can do */ }
+  try { localStorage.removeItem(SAVE_KEY); } catch { /* private mode or quota */ }
 }
-
-/* Colours are found, not invented: fog paper, graphite, coastal water, brass.
-   Two accents carry meaning and nothing else. tide = solid, known, interactive.
-   brass = still forming, still being learned. Both pass AA on every base. */
 
 const spellById = Object.fromEntries(SPELL.map((s) => [s.id, s]));
 const pageNo = (id) => String(SPELL.findIndex((s) => s.id === id) + 1).padStart(2, "0");
@@ -62,8 +54,7 @@ function Grimoire({ inscribed, setInscribed, cleared, setCleared, misdraws, setM
   const revealed = (s) => !s.from || inked.has(s.from);
   const stateOf = (s) => (!revealed(s) ? "locked" : inked.has(s.id) ? "inscribed" : "seen");
 
-  // opening a spell deals a fresh tray. The shuffle is random, so it has to happen once per
-  // open rather than during render, which is why this is an effect and not derived state.
+  // shuffle once per open, not per render
   useEffect(() => {
     if (!openSpell) return;
     /* eslint-disable react-hooks/set-state-in-effect */
@@ -326,8 +317,6 @@ function Grimoire({ inscribed, setInscribed, cleared, setCleared, misdraws, setM
         </div>
       </div>
 
-      {/* prologue */}
-      {/* act beat */}
       {/* spell detail */}
       {openSpell && (() => {
         const s = spellById[openSpell];
@@ -518,8 +507,6 @@ function EnemyArt({ id, color, size = 84 }) {
 }
 
 const pickAny = (arr) => arr[Math.floor(Math.random() * arr.length)];
-// Every number the duel shows has to be traceable to something the player did,
-// so the readout lists the reasons rather than rolling for them.
 function readCast({ ordered, tiers, weakHits, length }) {
   const notes = [];
   if (!ordered) notes.push("out of order, so it lands weak");
@@ -649,10 +636,10 @@ function SpellDuel({ inscribed }) {
   const drawPile = CARDS.filter((c) => !c.req || duelDone.has(c.req));
   const dealHand = (held) => {
     const out = [...held];
-    // these three always run clean together, so every hand has a spine that opens the data cards
+    // these three always run clean together, so every hand has something that works
     for (const id of ["tomes", "reliquary", "ledger"]) if (!out.some((c) => c.id === id)) out.push(newCard(id));
     while (out.length < HAND_SIZE) out.push(newCard(pickAny(drawPile).id));
-    // without an output card the run prints nothing and the turn feels broken, so force one
+    // with no output card the run prints nothing and looks broken
     const canShow = out.some((c) => c.id === "printword" || c.id === "branch" || (c.id === "glass" && out.some((x) => x.id === "runeimport")));
     if (!canShow) {
       const locked = new Set(["tomes", "reliquary", "ledger", ...held.map((c) => c.id)]);
@@ -665,7 +652,7 @@ function SpellDuel({ inscribed }) {
   useEffect(() => { if (!flash) return; const t = setTimeout(() => setFlash(null), 750); return () => clearTimeout(t); }, [flash]);
   useEffect(() => { if (!castMsg) return; const t = setTimeout(() => setCastMsg(null), 2400); return () => clearTimeout(t); }, [castMsg]);
   useEffect(() => { if (!note) return; const t = setTimeout(() => setNote(""), 2600); return () => clearTimeout(t); }, [note]);
-  // stale output would read as a passing run against a script that has since changed
+  // old output would look like a pass on a script that has changed
   /* eslint-disable-next-line react-hooks/set-state-in-effect */
   useEffect(() => { setRunOut(null); }, [seq]);
 
@@ -727,7 +714,7 @@ function SpellDuel({ inscribed }) {
   const keystone = seq.length ? seq.reduce((k, c) => (cardById[c.id].tier >= cardById[k.id].tier ? c : k), seq[0]) : null;
   let firstBad = -1;
   for (let i = 1; i < tiersArr.length; i++) { if (tiersArr[i] < tiersArr[i - 1]) { firstBad = i; break; } }
-  // casting is gated on a clean run so the duel never rewards code that would not execute
+  // no casting until it runs clean
   const canWeave = seq.length > 0 && plays > 0 && !!(runOut && runOut.ok);
 
   const weave = () => {
@@ -1416,9 +1403,6 @@ function schoolStanding(spells, schoolMap, inked, misdraws) {
   });
 }
 
-/* What the app thinks it knows about you, and how much of that is guesswork.
-   Every reading states the evidence it came from, because a number with no
-   evidence behind it is a claim, not a measurement. */
 function reading(spell, inked, misdraws) {
   const slips = misdraws[spell.id] || 0;
   const known = inked.has(spell.id);
@@ -1442,7 +1426,6 @@ function reading(spell, inked, misdraws) {
     why: `It held, but it took ${slips} wrong orderings to get there. Worth another pass.` };
 }
 
-// a dial face, not an icon: empty ring while forming, half filled once it holds
 function Gauge({ filled, ink }) {
   return (
     <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true">
