@@ -516,11 +516,99 @@ function readCast({ ordered, tiers, weakHits, length }) {
   return notes.join(" · ");
 }
 
-function pickDecoys(correctId, n) {
-  const pool = CARDS.map((c) => c.id).filter((x) => x !== correctId);
-  const out = [];
-  while (out.length < n && pool.length) out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
-  return out;
+const PY_WORDS = new Set(["import", "as", "from", "def", "class", "return", "for", "in", "if",
+  "else", "print", "len", "sum", "assert", "pass", "True", "False", "None", "self", "r", "x", "o"]);
+
+// what a line brings into existence, if anything
+function nameMade(code) {
+  let m = code.match(/^import\s+[\w.]+\s+as\s+(\w+)/);
+  if (m) return m[1];
+  m = code.match(/^(?:def|class)\s+(\w+)/);
+  if (m) return m[1];
+  m = code.match(/^(\w+)\s*=[^=]/);
+  if (m) return m[1];
+  return null;
+}
+
+// names a line leans on, ignoring the one it defines itself
+function namesUsed(code) {
+  const made = nameMade(code);
+  const body = code.replace(/"[^"]*"|'[^']*'/g, "");
+  return [...new Set([...body.matchAll(/\b([A-Za-z_]\w*)\b/g)].map((m) => m[1]))]
+    .filter((n) => n !== made && !PY_WORDS.has(n));
+}
+
+const shuffle = (a) => a.slice().sort(() => Math.random() - 0.5);
+
+/* The question has to be about the script the player just built, so it is
+   generated from the lines in the sequence and every option is one of them. */
+function askAboutScript(seq, cardById) {
+  const lines = seq.map((c) => cardById[c.id].code);
+  // decoys are always other lines from this same script, never from the deck
+  const pool = (all, banned) => shuffle(all.filter((l) => !banned.includes(l))).slice(0, 2);
+  const asked = [];
+
+  // every place a later line leans on a name an earlier line makes
+  const links = [];
+  for (let i = 1; i < lines.length; i++) {
+    for (const need of namesUsed(lines[i])) {
+      const j = lines.slice(0, i).map(nameMade).lastIndexOf(need);
+      if (j >= 0) links.push({ needs: need, user: lines[i], userAt: i, maker: lines[j], makerAt: j });
+    }
+  }
+
+  if (lines.length >= 3 && links.length) {
+    const l = links[Math.floor(Math.random() * links.length)];
+    // any other line touching the same name would make a second answer defensible
+    const alsoMakes = lines.filter((ln, i) => i !== l.makerAt && nameMade(ln) === l.needs);
+    asked.push({
+      prompt: `This line needs ${l.needs}. Which line makes it?`,
+      subject: l.user,
+      answer: l.maker,
+      options: shuffle([l.maker, ...pool(lines, [l.maker, l.user, ...alsoMakes])]),
+      why: `${l.needs} has to exist before that line runs, which is why the order matters.`,
+    });
+    // "breaks first" is only fair against the earliest line that uses the name,
+    // and only if no other option uses it too
+    const firstUser = links.filter((k) => k.needs === l.needs && k.makerAt === l.makerAt)
+      .sort((x, y) => x.userAt - y.userAt)[0];
+    const alsoUses = lines.filter((ln, i) => i !== firstUser.userAt && namesUsed(ln).includes(l.needs));
+    asked.push({
+      prompt: "Delete this line. Which one breaks first?",
+      subject: l.maker,
+      answer: firstUser.user,
+      options: shuffle([firstUser.user, ...pool(lines, [firstUser.user, l.maker, ...alsoUses, ...alsoMakes])]),
+      why: `Without it there is no ${l.needs} for that line to use.`,
+    });
+  }
+
+  if (lines.length >= 3) {
+    const first = seq
+      .map((c, i) => ({ code: cardById[c.id].code, tier: cardById[c.id].tier, i }))
+      .sort((a, b) => a.tier - b.tier || a.i - b.i)[0].code;
+    asked.push({
+      prompt: "Python reads this top to bottom. Which of these runs first?",
+      subject: null,
+      answer: first,
+      options: shuffle([first, ...pool(lines, [first])]),
+      why: "Imports and setup come before anything that uses them.",
+    });
+  }
+
+  if (!asked.length) {
+    const last = lines[lines.length - 1];
+    asked.push({
+      prompt: "Which line does Python reach last?",
+      subject: null,
+      answer: last,
+      options: shuffle([last, ...pool(lines, [last])]),
+      why: "It runs top to bottom, so the bottom line goes last.",
+    });
+  }
+  // a two-option question is a coin flip, so prefer any that can offer three
+  const full = asked.filter((a) => a.options.length >= 3);
+  const usable = full.length ? full : asked;
+  return usable[Math.floor(Math.random() * usable.length)];
 }
 
 function runWorking(seq) {
@@ -719,19 +807,20 @@ function SpellDuel({ inscribed }) {
 
   const weave = () => {
     if (casting || phase !== "play" || !canWeave) return;
-    setCasting({ keystone: keystone.id, options: [keystone.id, ...pickDecoys(keystone.id, 2)].sort(() => Math.random() - 0.5) });
+    setCasting(askAboutScript(seq, cardById));
     setWeaveOut(null);
   };
-  const pickKeystone = (pickedId) => {
+  const pickKeystone = (picked) => {
     if (weaveOut) return;
-    const correct = pickedId === casting.keystone;
+    const correct = picked === casting.answer;
     const sigilMult = correct ? 1 : 0.6;
     const dmg = Math.round(baseTotal * mult * sigilMult);
-    const combo = ordered && !correct ? "Compiled. Wrong keystone" : comboName;
+    const combo = ordered && !correct ? "Compiled. Misread the order" : comboName;
     const hint = !ordered && firstBad >= 0
       ? `${TIERS[tiersArr[firstBad]].name} runs before ${TIERS[tiersArr[firstBad - 1]].name}. Code runs top to bottom. Tap Sort to fix the order.`
       : "";
-    setWeaveOut({ correct, ordered, dmg, combo, hint, big, tiers: distinctTiers, weakHits, code: seq.map((c) => cardById[c.id].code) });
+    setWeaveOut({ correct, ordered, dmg, combo, hint, big, tiers: distinctTiers, weakHits,
+      answer: casting.answer, why: casting.why, code: seq.map((c) => cardById[c.id].code) });
   };
   const unleash = () => {
     const dmg = enemyGuard ? Math.ceil(weaveOut.dmg / 2) : weaveOut.dmg;
@@ -1016,7 +1105,7 @@ function SpellDuel({ inscribed }) {
 
       {/* weave overlay */}
       {casting && keystone && (() => {
-        const info = cardById[casting.keystone]; const col = SCHOOL[info.school].color;
+        const col = SCHOOL[cardById[keystone.id].school].color;
         return (
           <div style={{ position: "fixed", inset: 0, background: "rgba(38,29,18,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 60, backdropFilter: "blur(4px)" }}>
             <div className="pop" style={{ position: "relative", background: INK.pageHi, border: `1.5px solid ${col}`, borderRadius: "2px 2px 18px 2px", maxWidth: 480, width: "100%", padding: 24, textAlign: "center" }}>
@@ -1043,17 +1132,18 @@ function SpellDuel({ inscribed }) {
 
               {!weaveOut ? (
                 <>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center", margin: "12px 0 4px", color: INK.candle, fontStyle: "italic" }}>
-                    Seal it. Which working is the keystone?
-                  </div>
-                  <div style={{ fontSize: 14, color: INK.text, fontStyle: "italic", marginBottom: 14 }}>“{info.mnem}”</div>
-                  <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-                    {casting.options.map((oid) => (
-                      <button key={oid} className="opt btn arc" onClick={() => pickKeystone(oid)}
-                        style={{ background: INK.ink, border: `1.5px solid ${INK.lineHi}`, borderRadius: 2, padding: "12px 16px", fontSize: 14, color: INK.dim, transition: "border-color .15s, transform .15s" }}
-                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = col; e.currentTarget.style.transform = "translateY(-3px)"; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = INK.lineHi; e.currentTarget.style.transform = "none"; }}>
-                        {cardById[oid].name}
+                  <div className="arc" style={{ fontSize: 11, color: INK.faint, letterSpacing: 1.5, margin: "14px 0 6px" }}>BEFORE YOU CAST</div>
+                  <div style={{ fontSize: 15.5, color: INK.text, marginBottom: casting.subject ? 8 : 14, lineHeight: 1.45 }}>{casting.prompt}</div>
+                  {casting.subject && (
+                    <div className="mono" style={{ background: INK.vellum, color: INK.vellumInk, border: `1px solid ${INK.vellumEdge}`, borderLeft: `3px solid ${INK.oxblood}`, padding: "7px 11px", fontSize: 12.5, marginBottom: 14, textAlign: "left", overflowX: "auto", whiteSpace: "pre" }}>{casting.subject}</div>
+                  )}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                    {casting.options.map((line) => (
+                      <button key={line} className="opt btn mono" onClick={() => pickKeystone(line)}
+                        style={{ background: INK.ink, border: `1.5px solid ${INK.lineHi}`, borderRadius: 2, padding: "10px 13px", fontSize: 12.5, color: INK.text, textAlign: "left", whiteSpace: "pre", overflowX: "auto", transition: "border-color .15s" }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = col; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = INK.lineHi; }}>
+                        {line}
                       </button>
                     ))}
                   </div>
@@ -1063,7 +1153,16 @@ function SpellDuel({ inscribed }) {
                   <div className="arc" style={{ fontSize: 20, fontWeight: 700, color: weaveOut.ordered ? (weaveOut.big ? INK.candle : INK.terreVerte) : INK.oxblood }}>{weaveOut.combo}</div>
                   {weaveOut.hint
                     ? <div style={{ fontSize: 13, color: INK.oxblood, marginTop: 6, lineHeight: 1.45 }}>{weaveOut.hint}</div>
-                    : <div style={{ fontSize: 13, color: INK.dim, marginTop: 6 }}>{weaveOut.ordered ? (weaveOut.correct ? "In order, keystone named." : "In order, but you named the wrong keystone.") : ""}</div>}
+                    : <div style={{ fontSize: 13, color: INK.dim, marginTop: 6, lineHeight: 1.5 }}>
+                        {weaveOut.ordered && weaveOut.correct && "In order, and you read it right."}
+                        {weaveOut.ordered && !weaveOut.correct && (
+                          <>
+                            <span style={{ color: INK.oxblood }}>Not that one. </span>
+                            <span className="mono" style={{ fontSize: 12.5 }}>{weaveOut.answer}</span>
+                            <div style={{ marginTop: 4 }}>{weaveOut.why}</div>
+                          </>
+                        )}
+                      </div>}
                   <div className="mono" style={{ fontSize: 22, color: weaveOut.ordered ? INK.candle : INK.dim, marginTop: 8 }}>{weaveOut.dmg} dmg{enemyGuard ? ` cut to ${Math.ceil(weaveOut.dmg / 2)} by the guard` : ""}</div>
                   <button className="btn" onClick={unleash} style={{ marginTop: 16, padding: "11px 30px", borderRadius: 3, fontFamily: "'Vollkorn', Georgia, serif", fontWeight: 700, fontSize: 15, background: col, color: INK.onAccent, display: "inline-flex", alignItems: "center", gap: 7 }}>Unleash</button>
                 </div>

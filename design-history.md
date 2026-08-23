@@ -402,6 +402,30 @@ Vite went from 5 to 8 to clear an esbuild advisory. It only affects the dev serv
 have touched anyone playing the built site, but a public repo shows the alert and a peer reading the
 repo can't tell a dev-only advisory from a real one at a glance.
 
+## The question before a cast
+
+The duel used to ask a question before letting you attack, and the question was bad. It showed a
+card's mnemonic and asked you to pick that card's name out of three, and two of the three were pulled
+at random from the whole deck, so they were often cards you'd never played. It tested whether you'd
+memorized what the cards are called. It didn't touch the script you had just written, which is the
+only thing in the duel worth testing.
+
+It's generated from the sequence now, and every option is a line from your own script. Three shapes,
+picked evenly. Which line makes the name this one needs. Delete this line, which one breaks first.
+Which line does Python reach first. All three are about data flow and execution order, which is the
+thing the duel exists to teach.
+
+Two problems turned up while building it, both found by generating a few thousand questions and
+checking them rather than by looking at a handful. The line being asked about could appear among its
+own options, so you'd be asked which line makes `df` with `fig = px.bar(df, ...)` sitting there as a
+choice. And "delete this line, which breaks first" was offering several lines that all used the same
+name, so more than one answer was defensible; the exclusion list was being built against the wrong
+line. Short scripts were also producing two-option questions, which is a coin flip, so it now prefers
+whichever question can offer three.
+
+Getting it wrong costs the same as before, damage at sixty percent, and it now shows you the right
+line and why. Being wrong should leave you knowing something.
+
 ## Still open
 
 1. Onboarding has nowhere to live since the prologue came out. Top of the list.
