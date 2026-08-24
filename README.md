@@ -14,7 +14,7 @@ Open a spell and you get the line in plain English, when to reach for it, and th
 
 ## Run it locally
 
-Needs Node 18 or newer.
+Needs Node 22 or newer, which is what CI runs. `.nvmrc` pins it, so `nvm use` picks the right one. On Node 20 the jsdom test fails to start.
 
 ```bash
 git clone https://github.com/bmallegri/python-spellbook.git

@@ -7,6 +7,14 @@ import {
 
 const GRAIN_CSS = `.ground { background-color: #e7e3d9; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/></filter><rect width='160' height='160' filter='url(%23g)' opacity='0.055'/></svg>"); }`;
 
+// one thin brass scrollbar everywhere, so the page and the modals match
+const SCROLL_CSS = `
+  * { scrollbar-width: thin; scrollbar-color: ${INK.brass} transparent; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: ${INK.brass}; border-radius: 99px; }
+`;
+
 const SAVE_KEY = "spellbook.save.v1";
 // throws in private mode, returns junk after a failed write
 function readGrimoire() {
@@ -1671,7 +1679,8 @@ function Spellbook() {
   return (
     <div className="ground" style={{ minHeight: "100vh" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Vollkorn:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=IBM+Plex+Mono:wght@400;500&display=swap');
-${GRAIN_CSS}`}</style>
+${GRAIN_CSS}
+${SCROLL_CSS}`}</style>
       <div style={{ display: "flex", justifyContent: "center", gap: 10, padding: "18px 16px 4px" }}>
         <DeskTab active={mode === "story"} onClick={() => setMode("story")} label="Story Mode" />
         <DeskTab active={mode === "work"} onClick={() => setMode("work")} label="Working World" />
