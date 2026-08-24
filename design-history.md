@@ -31,19 +31,6 @@ the duel costs nothing at all. Only the real file has stakes.
 
 Still owe this section the actual moment that set the whole thing off. I know what it was; I've just not typed it out yet.
 
-## Why a witch's atelier
-
-Witch Hat Atelier, mostly, where the drawing is the spell instead of decoration sitting on top of it.
-That maps onto code almost too cleanly. Little Witch Academia for the shape of an apprentice and a teacher,
-and Madoka for labyrinths as bounded set-pieces. Omori for smudged monochrome opening into color,
-which is where the locked pages came from; an unlearnable spell isn't grayed out and disabled, it is
-smudged ink you can't read yet.
-
-The theme carries weight I couldn't get any other way. Learning to code is demoralizing for reasons
-that have nothing to do with how hard the material is, and Mirabelle is there to absorb that. She is not
-a mascot and she doesn't cheer. Eleven apprentices, all eleven gone, so she has something riding on
-whether you stay. You're the twelfth, which is where the title comes from.
-
 ## What the spells actually teach
 
 Three hooks on every spell. `say` is the line read aloud in plain English and it's the one I care most
@@ -52,9 +39,9 @@ about, because if you can say what a line does you can write it without having m
 tutorials skip and the reason people know what a dictionary is and never once reach for one.
 
 I write the images strange on purpose, because odd pictures stick and tidy ones slide right off. The variables hook is not
-a labelled jar, it's Mirabelle writing on the lid before she fills it, because a jar you fill first and
-name later is one you open in six months without recognizing. Stranger, and it teaches a habit instead
-of a category.
+a labelled jar, it's Mirabelle, the witch whose atelier the game is set in, writing on the lid before she
+fills it, because a jar you fill first and name later is one you open in six months without recognizing.
+Stranger, and it teaches a habit instead of a category.
 
 Some images I rewrote because they were comforting and wrong, which is worse than being dull. Exceptions
 used to be a bridge that might crack with a safety net underneath. A net catches you and you're fine, so
@@ -211,7 +198,8 @@ What's left is premise instead of plot. One line under the title says Mirabelle 
 apprentices and all eleven of them left, which is enough to make the game's name mean something. She
 still talks on a spell page and when you clear a labyrinth, a line at a time. The atelier vocabulary
 stays, because that's the aesthetic rather than the story and the aesthetic is doing real work; the
-smudged locked pages, the ink, the tea-house data sitting in every code sample.
+locked pages that read as smudged ink you can't make out yet rather than as disabled controls, the ink,
+the tea-house data sitting in every code sample.
 
 The lines she has left are still written to a rule. Could a generic mentor in any game say this? If yes,
 rewrite it until only she could. She doesn't land aphorisms, her warm moments get undercut and usually by
@@ -438,11 +426,7 @@ line and why. Being wrong should leave you knowing something.
 5. The code panel lost contrast in the light flip and no longer reads as an inserted sheet.
 6. Several spells shared a sigil under the old mapping. With the art gone, check the spell line groupings
    still hold up on their own.
-7. `Grimoire.jsx` is 2,582 lines and two components hold most of it; `Grimoire` and `SpellDuel` sit around
-   500 each, with everything else under 100. One file was right while content and interface were changing
-   together. Those two are past it.
-8. There's no live link yet. Every comparable game leads with one, and a repo you can't play in a browser
-   loses most of its audience right there at the README. The Pages workflow is written and sitting in
-   `.github/workflows/deploy.yml`, so this is one settings toggle away.
-9. No screenshot in the README either. Flexbox Froggy's README is essentially a link and an animated GIF,
-   and that's the right instinct for something you're meant to look at.
+7. Two components still hold most of `src/App.jsx`, which is 1,705 lines; `Grimoire` runs about 430 and
+   `SpellDuel` about 540, with everything else under 100. Pulling the content out fixed the file-length
+   half of this. One file was right while content and interface were changing together, and those two are
+   past it. That's two extractions, not the full componentisation, which still isn't worth the churn.
