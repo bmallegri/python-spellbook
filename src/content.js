@@ -1,12 +1,15 @@
 // All the game content. No React in here.
 
-export const KNOWN = "#2c6273";   // tide
-export const FORMING = "#7a5d22"; // brass
+// Named for the state the ink is in, not the colour it happens to be, so the
+// palette and the interface cannot drift apart.
+export const SMUDGED_INK = "#5f6570";     // slate
+export const FORMING_INK = "#7a5d22";     // brass
+export const INSCRIBED_INK = "#2c6273";   // tide
 
 export function stateInk(state) {
-  if (state === "inscribed") return KNOWN;
-  if (state === "locked") return "#5f6570";
-  return FORMING;
+  if (state === "inscribed") return INSCRIBED_INK;
+  if (state === "locked") return SMUDGED_INK;
+  return FORMING_INK;
 }
 
 export const INK = {
@@ -21,10 +24,10 @@ export const INK = {
 };
 
 export const SCHOOL = {
-  inscription: { name: "Inscription", color: KNOWN, blurb: "The first inks. Everything else is built on these." },
-  transmutation: { name: "Transmutation", color: KNOWN, blurb: "Reshaping what is already written." },
-  divination: { name: "Revelation", color: KNOWN, blurb: "Making a table say out loud what it has only been hinting at." },
-  artifice: { name: "Conjuration", color: KNOWN, blurb: "Things that keep working after you walk away." },
+  inscription: { name: "Inscription", color: INSCRIBED_INK, blurb: "The first inks. Everything else is built on these." },
+  transmutation: { name: "Transmutation", color: INSCRIBED_INK, blurb: "Reshaping what is already written." },
+  divination: { name: "Revelation", color: INSCRIBED_INK, blurb: "Making a table say out loud what it has only been hinting at." },
+  artifice: { name: "Conjuration", color: INSCRIBED_INK, blurb: "Things that keep working after you walk away." },
 };
 
 // say = read it aloud, image = what to picture, when = when to reach for it
@@ -721,14 +724,14 @@ export const ENEMIES = [
 ];
 
 export const WORK_SCHOOL = {
-  deepcraft: { name: "Deep Craft", color: KNOWN, blurb: "Inheritance, and the methods that plug your classes into the language." },
-  precision: { name: "Precision", color: KNOWN, blurb: "Types and tests that catch the lie before it runs." },
-  vault: { name: "The Vault", color: KNOWN, blurb: "Where a program remembers things after it closes." },
-  numeric: { name: "The Numeric Arts", color: KNOWN, blurb: "The arrays and models machine learning runs on." },
-  deeproots: { name: "The Deep Roots", color: KNOWN, blurb: "The algorithms and structures under every program." },
-  newtongue: { name: "The New Tongue", color: KNOWN, blurb: "Newer syntax that reads like someone meant it." },
-  swift: { name: "The Swift Arts", color: KNOWN, blurb: "Doing more than one thing at once, and finding what is slow." },
-  measured: { name: "The Measured Arts", color: KNOWN, blurb: "Numerical methods and signal tools." }
+  deepcraft: { name: "Deep Craft", color: INSCRIBED_INK, blurb: "Inheritance, and the methods that plug your classes into the language." },
+  precision: { name: "Precision", color: INSCRIBED_INK, blurb: "Types and tests that catch the lie before it runs." },
+  vault: { name: "The Vault", color: INSCRIBED_INK, blurb: "Where a program remembers things after it closes." },
+  numeric: { name: "The Numeric Arts", color: INSCRIBED_INK, blurb: "The arrays and models machine learning runs on." },
+  deeproots: { name: "The Deep Roots", color: INSCRIBED_INK, blurb: "The algorithms and structures under every program." },
+  newtongue: { name: "The New Tongue", color: INSCRIBED_INK, blurb: "Newer syntax that reads like someone meant it." },
+  swift: { name: "The Swift Arts", color: INSCRIBED_INK, blurb: "Doing more than one thing at once, and finding what is slow." },
+  measured: { name: "The Measured Arts", color: INSCRIBED_INK, blurb: "Numerical methods and signal tools." }
 };
 
 export const WORK = [

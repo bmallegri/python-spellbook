@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
-  INK, KNOWN, FORMING, stateInk,
+  INK, INSCRIBED_INK, FORMING_INK, stateInk,
   SCHOOL, SPELL, LABYRINTH, RANKS, ACTS, LAB_NOTE, SPELL_HANDS,
   TIERS, CARDS, ENEMIES, WORK_SCHOOL, WORK, TRADE_HANDS,
 } from "./content.js";
@@ -244,8 +244,8 @@ function Grimoire({ inscribed, setInscribed, cleared, setCleared, misdraws, setM
                 </div>
                 <div className="arc" style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, fontSize: 10, marginTop: 6, letterSpacing: .5 }}>
                   <span style={{ color: INK.faint }}>{locked ? "SHUT" : sc.name.toUpperCase()}</span>
-                  {on ? <span style={{ color: KNOWN, fontWeight: 700 }}>KNOWN</span>
-                    : !locked && st === "seen" ? <span style={{ color: FORMING }}>FORMING</span> : null}
+                  {on ? <span style={{ color: INSCRIBED_INK, fontWeight: 700 }}>KNOWN</span>
+                    : !locked && st === "seen" ? <span style={{ color: FORMING_INK }}>FORMING</span> : null}
                 </div>
               </button>
             );
@@ -1514,22 +1514,22 @@ function reading(spell, inked, misdraws) {
   const slips = misdraws[spell.id] || 0;
   const known = inked.has(spell.id);
   if (!known && !slips) {
-    return { label: "No reading", ink: "#5f6570",
+    return { label: "No reading", ink: INK.faint,
       why: "You haven't opened this one, so there's nothing to go on." };
   }
   if (!known) {
-    return { label: "Forming", ink: FORMING,
+    return { label: "Forming", ink: FORMING_INK,
       why: `Opened, not finished. ${slips} wrong ${slips === 1 ? "ordering" : "orderings"} so far.` };
   }
   if (slips === 0) {
-    return { label: "Solid", ink: KNOWN,
+    return { label: "Solid", ink: INSCRIBED_INK,
       why: "Laid correctly in all three contexts, first try each time." };
   }
   if (slips <= 3) {
-    return { label: "Solid", ink: KNOWN,
+    return { label: "Solid", ink: INSCRIBED_INK,
       why: `Held in all three contexts after ${slips} wrong ${slips === 1 ? "ordering" : "orderings"}.` };
   }
-  return { label: "Known, with friction", ink: FORMING,
+  return { label: "Known, with friction", ink: FORMING_INK,
     why: `It held, but it took ${slips} wrong orderings to get there. Worth another pass.` };
 }
 
