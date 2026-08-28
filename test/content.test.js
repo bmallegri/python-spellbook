@@ -156,6 +156,21 @@ describe("the four inks", () => {
   });
 });
 
+describe("house vocabulary", () => {
+  // smudged, forming, inscribed. Three states, three words, both tracks.
+  it("uses no retired status word", () => {
+    for (const word of ['"KNOWN"', '"INKED"', '"SHUT"']) {
+      expect(ui.includes(word), `${word} is retired`).toBe(false);
+    }
+  });
+
+  it("says all three in the interface", () => {
+    for (const word of ['"SMUDGED"', '"FORMING"', '"INSCRIBED"']) {
+      expect(ui.includes(word), `${word} missing`).toBe(true);
+    }
+  });
+});
+
 describe("house style", () => {
   it("uses no em or en dashes", () => {
     expect(both.includes("\u2014"), "em dash").toBe(false);

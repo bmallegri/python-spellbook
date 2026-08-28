@@ -1,7 +1,7 @@
 // All the game content. No React in here.
 
-// Named for the state the ink is in, not the colour it happens to be, so the
-// palette and the interface cannot drift apart.
+// Three states, one metaphor, and the same three words everywhere in the game:
+// the ink is smudged (you can't read it yet), forming (open, not set), or inscribed.
 export const SMUDGED_INK = "#5f6570";     // slate
 export const FORMING_INK = "#7a5d22";     // brass
 export const INSCRIBED_INK = "#2c6273";   // tide

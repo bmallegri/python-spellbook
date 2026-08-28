@@ -243,9 +243,10 @@ function Grimoire({ inscribed, setInscribed, cleared, setCleared, misdraws, setM
                   {locked ? "Ink still smudged. Inscribe its base spell to reveal" : s.real}
                 </div>
                 <div className="arc" style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, fontSize: 10, marginTop: 6, letterSpacing: .5 }}>
-                  <span style={{ color: locked ? INK.faint : sc.color, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{locked ? "SHUT" : sc.name.toUpperCase()}</span>
-                  {on ? <span style={{ color: INSCRIBED_INK, fontWeight: 700, flex: "0 0 auto" }}>KNOWN</span>
-                    : !locked && st === "seen" ? <span style={{ color: FORMING_INK, flex: "0 0 auto" }}>FORMING</span> : null}
+                  <span style={{ color: locked ? INK.faint : sc.color, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{locked ? "" : sc.name.toUpperCase()}</span>
+                  <span style={{ color: mark, fontWeight: on ? 700 : 400, flex: "0 0 auto" }}>
+                    {locked ? "SMUDGED" : on ? "INSCRIBED" : "FORMING"}
+                  </span>
                 </div>
               </button>
             );
@@ -1404,7 +1405,7 @@ function WorkingWorld({ inscribed, setInscribed, setMisdraws }) {
                     <button key={s.id} className={locked ? "" : "page-card"} onClick={() => { if (!locked) open(s.id); }} style={{ textAlign: "left", cursor: locked ? "not-allowed" : "pointer", opacity: locked ? 0.62 : 1, background: on ? `${sc.color}16` : INK.page, border: `1.5px solid ${on ? sc.color : INK.line}`, borderRadius: 3, padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                         <span className="arc" style={{ fontSize: 11, letterSpacing: 1, color: on ? sc.color : INK.faint }}>RANK {s.rank}</span>
-                        <span className="arc" style={{ fontSize: 10, letterSpacing: 1, color: on ? sc.color : INK.faint }}>{on ? "INKED" : locked ? "SHUT" : ""}</span>
+                        <span className="arc" style={{ fontSize: 10, letterSpacing: 1, color: stateInk(on ? "inscribed" : locked ? "locked" : "seen") }}>{on ? "INSCRIBED" : locked ? "SMUDGED" : "FORMING"}</span>
                       </div>
                       <div>
                         <div className="arc" style={{ fontSize: 18, fontWeight: 700, color: on ? sc.color : locked ? INK.faint : INK.text, lineHeight: 1.1 }}>{s.name}</div>
@@ -1529,7 +1530,7 @@ function reading(spell, inked, misdraws) {
     return { label: "Solid", ink: INSCRIBED_INK,
       why: `Held in all three contexts after ${slips} wrong ${slips === 1 ? "ordering" : "orderings"}.` };
   }
-  return { label: "Known, with friction", ink: FORMING_INK,
+  return { label: "Solid, with friction", ink: FORMING_INK,
     why: `It held, but it took ${slips} wrong orderings to get there. Worth another pass.` };
 }
 
