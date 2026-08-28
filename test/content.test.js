@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
+import { SCHOOL, WORK_SCHOOL, SCHOOL_INK } from "../src/content.js";
 
 const src = readFileSync(new URL("../src/content.js", import.meta.url), "utf8");
 const ui = readFileSync(new URL("../src/App.jsx", import.meta.url), "utf8");
@@ -126,6 +127,31 @@ describe("labyrinths", () => {
       for (const id of m[1].match(/"(\w+)"/g).map((x) => x.replace(/"/g, ""))) {
         expect(spellIds.has(id), `labyrinth needs missing spell ${id}`).toBe(true);
       }
+    }
+  });
+});
+
+describe("the four inks", () => {
+  it("keeps the palette to four", () => {
+    expect(new Set(Object.values(SCHOOL_INK)).size).toBe(4);
+  });
+
+  it("gives every school one of them", () => {
+    const inks = new Set(Object.values(SCHOOL_INK));
+    for (const [key, sc] of Object.entries({ ...SCHOOL, ...WORK_SCHOOL })) {
+      expect(inks.has(sc.color), `${key} is off the palette`).toBe(true);
+    }
+  });
+
+  // one flat colour is what made "standing by school" unreadable
+  it("spreads the story schools across all four", () => {
+    expect(new Set(Object.values(SCHOOL).map((s) => s.color)).size).toBe(4);
+  });
+
+  it("pairs the eight trade schools two to an ink", () => {
+    const used = Object.values(WORK_SCHOOL).map((s) => s.color);
+    for (const ink of Object.values(SCHOOL_INK)) {
+      expect(used.filter((c) => c === ink), `${ink} pairing`).toHaveLength(2);
     }
   });
 });

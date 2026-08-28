@@ -23,11 +23,20 @@ export const INK = {
   candle: "#7a5d22", verdigris: "#2c6273", oxblood: "#8a3f2f", terreVerte: "#4a6146",
 };
 
+// The four inks a real manuscript would have had. Every school takes one, so
+// "standing by school" reads at a glance instead of coming out one flat blue.
+export const SCHOOL_INK = {
+  tide: INK.verdigris,      // #2c6273
+  verte: INK.terreVerte,    // #4a6146
+  oxblood: INK.oxblood,     // #8a3f2f
+  folium: "#6a4a6e",        // turnsole, the fourth manuscript ink
+};
+
 export const SCHOOL = {
-  inscription: { name: "Inscription", color: INSCRIBED_INK, blurb: "The first inks. Everything else is built on these." },
-  transmutation: { name: "Transmutation", color: INSCRIBED_INK, blurb: "Reshaping what is already written." },
-  divination: { name: "Revelation", color: INSCRIBED_INK, blurb: "Making a table say out loud what it has only been hinting at." },
-  artifice: { name: "Conjuration", color: INSCRIBED_INK, blurb: "Things that keep working after you walk away." },
+  inscription: { name: "Inscription", color: SCHOOL_INK.tide, blurb: "The first inks. Everything else is built on these." },
+  transmutation: { name: "Transmutation", color: SCHOOL_INK.verte, blurb: "Reshaping what is already written." },
+  divination: { name: "Revelation", color: SCHOOL_INK.oxblood, blurb: "Making a table say out loud what it has only been hinting at." },
+  artifice: { name: "Conjuration", color: SCHOOL_INK.folium, blurb: "Things that keep working after you walk away." },
 };
 
 // say = read it aloud, image = what to picture, when = when to reach for it
@@ -723,15 +732,16 @@ export const ENEMIES = [
     moves: [{ t: "atk", v: 8 }, { t: "heal", v: 12 }, { t: "atk", v: 10 }] },
 ];
 
+// paired by kind with the story inks: structure, care, risk, number
 export const WORK_SCHOOL = {
-  deepcraft: { name: "Deep Craft", color: INSCRIBED_INK, blurb: "Inheritance, and the methods that plug your classes into the language." },
-  precision: { name: "Precision", color: INSCRIBED_INK, blurb: "Types and tests that catch the lie before it runs." },
-  vault: { name: "The Vault", color: INSCRIBED_INK, blurb: "Where a program remembers things after it closes." },
-  numeric: { name: "The Numeric Arts", color: INSCRIBED_INK, blurb: "The arrays and models machine learning runs on." },
-  deeproots: { name: "The Deep Roots", color: INSCRIBED_INK, blurb: "The algorithms and structures under every program." },
-  newtongue: { name: "The New Tongue", color: INSCRIBED_INK, blurb: "Newer syntax that reads like someone meant it." },
-  swift: { name: "The Swift Arts", color: INSCRIBED_INK, blurb: "Doing more than one thing at once, and finding what is slow." },
-  measured: { name: "The Measured Arts", color: INSCRIBED_INK, blurb: "Numerical methods and signal tools." }
+  deepcraft: { name: "Deep Craft", color: SCHOOL_INK.tide, blurb: "Inheritance, and the methods that plug your classes into the language." },
+  precision: { name: "Precision", color: SCHOOL_INK.verte, blurb: "Types and tests that catch the lie before it runs." },
+  vault: { name: "The Vault", color: SCHOOL_INK.oxblood, blurb: "Where a program remembers things after it closes." },
+  numeric: { name: "The Numeric Arts", color: SCHOOL_INK.folium, blurb: "The arrays and models machine learning runs on." },
+  deeproots: { name: "The Deep Roots", color: SCHOOL_INK.tide, blurb: "The algorithms and structures under every program." },
+  newtongue: { name: "The New Tongue", color: SCHOOL_INK.verte, blurb: "Newer syntax that reads like someone meant it." },
+  swift: { name: "The Swift Arts", color: SCHOOL_INK.oxblood, blurb: "Doing more than one thing at once, and finding what is slow." },
+  measured: { name: "The Measured Arts", color: SCHOOL_INK.folium, blurb: "Numerical methods and signal tools." }
 };
 
 export const WORK = [
