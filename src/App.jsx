@@ -243,9 +243,9 @@ function Grimoire({ inscribed, setInscribed, cleared, setCleared, misdraws, setM
                   {locked ? "Ink still smudged. Inscribe its base spell to reveal" : s.real}
                 </div>
                 <div className="arc" style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, fontSize: 10, marginTop: 6, letterSpacing: .5 }}>
-                  <span style={{ color: INK.faint }}>{locked ? "SHUT" : sc.name.toUpperCase()}</span>
-                  {on ? <span style={{ color: INSCRIBED_INK, fontWeight: 700 }}>KNOWN</span>
-                    : !locked && st === "seen" ? <span style={{ color: FORMING_INK }}>FORMING</span> : null}
+                  <span style={{ color: locked ? INK.faint : sc.color, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{locked ? "SHUT" : sc.name.toUpperCase()}</span>
+                  {on ? <span style={{ color: INSCRIBED_INK, fontWeight: 700, flex: "0 0 auto" }}>KNOWN</span>
+                    : !locked && st === "seen" ? <span style={{ color: FORMING_INK, flex: "0 0 auto" }}>FORMING</span> : null}
                 </div>
               </button>
             );
