@@ -1504,8 +1504,7 @@ const trackSchool = (c) => (c.track === "story" ? SCHOOL : WORK_SCHOOL)[c.school
 
 // the parts of this that aren't built yet, said plainly rather than hidden
 const FLASH_SOON = [
-  ["Rate each card", "Easy, shaky, lost. The shaky ones come back before the easy ones do."],
-  ["Spaced repetition", "A card you keep missing turns up tomorrow. One you know waits a month."],
+  ["Spaced repetition", "The ratings are kept now. Next they decide when a card comes back: shaky tomorrow, easy in a month."],
   ["Turn the card around", "Definition on the front, and you have to name the spell yourself."],
   ["Write it, don't just read it", "Type the line from memory before the back will open."],
   ["A run of ten", "One short pass, and then it tells you to stop for the day."],
@@ -1684,7 +1683,7 @@ function FlashCards({ inscribed, reviews, setReviews }) {
             <span className="arc" style={{ fontSize: 10.5, letterSpacing: 1.4, color: INK.brass, border: `1px solid ${INK.brass}66`, borderRadius: 99, padding: "2px 8px" }}>COMING SOON</span>
           </div>
           <div style={{ color: INK.dim, fontSize: 13.5, marginTop: 6, lineHeight: 1.45 }}>
-            Right now a card only turns over. These are the parts still to come.
+A card turns over and takes a rating now. These are the parts still to come.
           </div>
           <div style={{ display: "grid", gap: 8, marginTop: 14, gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))" }}>
             {FLASH_SOON.map(([title, blurb]) => (
