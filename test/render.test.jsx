@@ -303,6 +303,46 @@ describe("the standing readout", () => {
   });
 });
 
+describe("the recall ledger", () => {
+  const D = 86400000;
+
+  it("says nothing is rated before any card is graded", async () => {
+    localStorage.setItem("spellbook.save.v1",
+      JSON.stringify({ inscribed: { varibuddy: true } }));
+    await render();
+    await click(button("Your Standing"));
+    expect(text()).toContain("The Deck");
+    expect(text()).toContain("No cards rated yet");
+  });
+
+  it("counts what is holding against what is slipping", async () => {
+    const n = Date.now();
+    localStorage.setItem("spellbook.save.v1", JSON.stringify({
+      inscribed: { varibuddy: true, condifork: true, listling: true },
+      reviews: {
+        varibuddy: { last: "easy", seen: 3, easy: 3, shaky: 0, lost: 0, step: 3, at: n, due: n + 7 * D },
+        condifork: { last: "lost", seen: 4, easy: 0, shaky: 1, lost: 3, step: 0, at: n, due: n },
+      },
+    }));
+    await render();
+    await click(button("Your Standing"));
+    expect(text(), "two of three cards rated").toContain("2/3");
+    expect(text(), "the lost card should be named").toContain("Control Flow");
+    expect(text()).toContain("What keeps slipping");
+  });
+
+  it("says so when nothing is slipping", async () => {
+    const n = Date.now();
+    localStorage.setItem("spellbook.save.v1", JSON.stringify({
+      inscribed: { varibuddy: true },
+      reviews: { varibuddy: { last: "easy", seen: 2, easy: 2, shaky: 0, lost: 0, step: 2, at: n, due: n + 3 * D } },
+    }));
+    await render();
+    await click(button("Your Standing"));
+    expect(text()).toContain("Nothing is slipping");
+  });
+});
+
 describe("saving", () => {
   it("writes progress under the current key", async () => {
     await render();

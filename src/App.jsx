@@ -1955,7 +1955,96 @@ function SchoolBars({ per }) {
   );
 }
 
-function Profile({ inscribed, cleared, misdraws }) {
+const STEP_NAME = ["today", "1 day", "3 days", "7 days", "21 days", "60 days"];
+
+// What the deck has seen. Deliberately separate from the two track ledgers:
+// tracing a line into place and recalling it cold are not the same evidence.
+function RecallLedger({ inscribed, reviews }) {
+  const [now] = useState(() => Date.now());   // a snapshot from when the page opened
+  const cards = FLASH_DECK.filter((c) => inscribed[c.id]);
+  const rated = cards.filter((c) => reviews[c.id]);
+  const due = cards.filter((c) => isDue(reviews[c.id], now)).length;
+  const holding = rated.filter((c) => reviews[c.id].last === "easy").length;
+  const slipping = rated.length - holding;
+  const ladder = STEPS.map((_, i) => rated.filter((c) => (reviews[c.id].step || 0) === i).length);
+  const most = Math.max(1, ...ladder);
+  const worst = rated
+    .filter((c) => reviews[c.id].last !== "easy")
+    .sort((a, b) => (reviews[b.id].lost - reviews[a.id].lost)
+      || (reviews[b.id].shaky - reviews[a.id].shaky)
+      || (reviews[b.id].seen - reviews[a.id].seen))
+    .slice(0, 6);
+
+  return (
+    <div style={{ background: INK.page, border: `1px solid ${INK.line}`, borderRadius: "2px 2px 18px 2px", padding: "18px 18px 24px", marginTop: 22 }}>
+      <div className="arc" style={{ fontSize: 22, fontWeight: 700, color: INK.candle, display: "flex", alignItems: "center", gap: 10 }}>The Deck</div>
+      <div style={{ color: INK.dim, fontSize: 13.5, marginTop: 4, marginBottom: 14 }}>Recall, which is a different thing from having traced it once.</div>
+
+      {rated.length === 0 ? (
+        <div style={{ background: INK.pageHi, border: `1.5px dashed ${INK.line}`, padding: "14px 16px" }}>
+          <div className="arc" style={{ fontSize: 15, color: INK.dim }}>No cards rated yet.</div>
+          <div style={{ fontSize: 13.5, color: INK.faint, marginTop: 4 }}>
+            {cards.length === 0
+              ? "Inscribe a spell and it becomes a card."
+              : `${cards.length} ${cards.length === 1 ? "card is" : "cards are"} waiting in Flash Cards. Turn one over and say how it went.`}
+          </div>
+        </div>
+      ) : (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
+            <StatCard label="RATED" value={`${rated.length}/${cards.length}`} sub="cards seen at least once" color={INK.candle} />
+            <StatCard label="DUE NOW" value={due} sub={due === 0 ? "nothing waiting" : "waiting to come round"} color={INK.brass} />
+            <StatCard label="HOLDING" value={holding} sub="easy last time" color={INSCRIBED_INK} />
+            <StatCard label="SLIPPING" value={slipping} sub="shaky or lost" color={INK.oxblood} />
+          </div>
+
+          <div className="arc" style={{ fontSize: 17, fontWeight: 700, marginTop: 24, marginBottom: 4 }}>How far out they have moved</div>
+          <div style={{ color: INK.dim, fontSize: 13.5, marginBottom: 12, maxWidth: 620, lineHeight: 1.45 }}>
+            Each card climbs a rung every time you call it easy. The far end of the ladder is the point.
+          </div>
+          <div style={{ display: "grid", gap: 7 }}>
+            {ladder.map((n, i) => (
+              <div key={STEP_NAME[i]} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span className="mono" style={{ fontSize: 12, color: INK.faint, minWidth: 58, textAlign: "right" }}>{STEP_NAME[i]}</span>
+                <div style={{ flex: 1, height: 10, background: INK.ink, borderRadius: 99, overflow: "hidden" }}>
+                  <div style={{ width: `${Math.round((n / most) * 100)}%`, height: "100%", background: n ? INK.candle : "transparent", borderRadius: 99 }} />
+                </div>
+                <span className="mono" style={{ fontSize: 12, color: n ? INK.text : INK.faint, minWidth: 18 }}>{n}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="arc" style={{ fontSize: 17, fontWeight: 700, marginTop: 24, marginBottom: 8 }}>What keeps slipping</div>
+          {worst.length === 0 ? (
+            <div style={{ fontSize: 13.5, color: INK.dim }}>Nothing is slipping. Every card you have rated came back easy.</div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              {worst.map((c) => {
+                const r = reviews[c.id];
+                const sc = trackSchool(c);
+                return (
+                  <div key={c.id} style={{ display: "flex", gap: 14, alignItems: "baseline", padding: "11px 2px", borderTop: `1px solid ${INK.line}` }}>
+                    <span style={{ minWidth: 22, paddingTop: 5 }}><Gauge filled={r.last === "shaky"} ink={GRADE[r.last].ink} /></span>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div className="arc" style={{ fontWeight: 600, fontSize: 15.5, color: INK.text }}>{c.name}</div>
+                      <div style={{ fontSize: 13, color: INK.dim, marginTop: 2 }}>
+                        {sc.name} · seen {r.seen} {r.seen === 1 ? "time" : "times"}
+                        {r.lost > 0 ? `, lost ${r.lost}` : ""}{r.shaky > 0 ? `, shaky ${r.shaky}` : ""} · {dueIn(r, now)}
+                      </div>
+                    </div>
+                    <span className="arc" style={{ fontSize: 12, color: GRADE[r.last].ink, letterSpacing: .5, whiteSpace: "nowrap" }}>{GRADE[r.last].label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function Profile({ inscribed, cleared, misdraws, reviews }) {
   const inked = new Set(Object.keys(inscribed).filter((k) => inscribed[k]));
   const storyDone = SPELL.filter((s) => inked.has(s.id)).length;
   const workDone = WORK.filter((s) => inked.has(s.id)).length;
@@ -1969,7 +2058,7 @@ function Profile({ inscribed, cleared, misdraws }) {
     <div style={{ color: INK.text, minHeight: "100vh", fontFamily: "'Vollkorn', Georgia, serif", padding: "clamp(14px, 3.5vw, 34px)" }}>
       <div style={{ maxWidth: 1060, margin: "0 auto" }}>
         <div className="arc" style={{ fontSize: "clamp(26px,4.5vw,40px)", fontWeight: 700, display: "flex", alignItems: "center", gap: 12 }}>Your Standing</div>
-        <div style={{ color: INK.dim, fontSize: 15, marginTop: 8, maxWidth: 700, lineHeight: 1.45 }}>Two ledgers, kept apart.</div>
+        <div style={{ color: INK.dim, fontSize: 15, marginTop: 8, maxWidth: 700, lineHeight: 1.45 }}>Three ledgers, kept apart.</div>
 
         <div style={{ background: INK.page, border: `1px solid ${INK.line}`, borderRadius: "2px 2px 2px 18px", padding: "18px 18px 24px", marginTop: 22 }}>
           <div className="arc" style={{ fontSize: 22, fontWeight: 700, color: SCHOOL.inscription.color, display: "flex", alignItems: "center", gap: 10 }}>Story Mode</div>
@@ -2002,6 +2091,8 @@ function Profile({ inscribed, cleared, misdraws }) {
           <div className="arc" style={{ fontSize: 17, fontWeight: 700, marginTop: 24, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>What this can tell</div>
           <ModelReadout spells={WORK} inked={inked} misdraws={misdraws} track="trade" />
         </div>
+
+        <RecallLedger inscribed={inscribed} reviews={reviews} />
       </div>
     </div>
   );
@@ -2038,7 +2129,7 @@ ${SCROLL_CSS}`}</style>
       {mode === "work" && <ErrorBoundary label="the Working World"><WorkingWorld inscribed={inscribed} setInscribed={setInscribed} setMisdraws={setMisdraws} /></ErrorBoundary>}
       {mode === "duel" && <ErrorBoundary label="the Spell Duel"><SpellDuel inscribed={inscribed} /></ErrorBoundary>}
       {mode === "flash" && <ErrorBoundary label="the Flash Cards"><FlashCards inscribed={inscribed} reviews={reviews} setReviews={setReviews} /></ErrorBoundary>}
-      {mode === "profile" && <ErrorBoundary label="Your Standing"><Profile inscribed={inscribed} cleared={cleared} misdraws={misdraws} /></ErrorBoundary>}
+      {mode === "profile" && <ErrorBoundary label="Your Standing"><Profile inscribed={inscribed} cleared={cleared} misdraws={misdraws} reviews={reviews} /></ErrorBoundary>}
     </div>
   );
 }
