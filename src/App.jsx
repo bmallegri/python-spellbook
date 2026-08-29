@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   INK, INSCRIBED_INK, FORMING_INK, stateInk,
-  SCHOOL, SPELL, LABYRINTH, RANKS, ACTS, LAB_NOTE, SPELL_HANDS,
+  SCHOOL, SCHOOL_INK, SPELL, LABYRINTH, RANKS, ACTS, LAB_NOTE, SPELL_HANDS,
   TIERS, CARDS, ENEMIES, WORK_SCHOOL, WORK, TRADE_HANDS,
 } from "./content.js";
 
@@ -1528,7 +1528,6 @@ const trackSchool = (c) => (c.track === "story" ? SCHOOL : WORK_SCHOOL)[c.school
 
 // the parts of this that aren't built yet, said plainly rather than hidden
 const FLASH_SOON = [
-  ["Turn the card around", "Definition on the front, and you have to name the spell yourself."],
   ["Write it, don't just read it", "Type the line from memory before the back will open."],
   ["A run of ten", "One short pass, and then it tells you to stop for the day."],
 ];
@@ -1539,6 +1538,7 @@ function FlashCards({ inscribed, reviews, setReviews }) {
   const [flipped, setFlipped] = useState(false);
   const [order, setOrder] = useState(null);   // null = book order, else ids in drawn order
   const [scope, setScope] = useState("due");
+  const [reversed, setReversed] = useState(false);
   // The deck is built once and held. Rating inside a pass must not pull the
   // card you just answered out from under the index you are sitting on.
   const [builtAt, setBuiltAt] = useState(() => Date.now());
@@ -1622,6 +1622,9 @@ function FlashCards({ inscribed, reviews, setReviews }) {
         <div style={{ display: "flex", gap: 8, marginTop: 18, flexWrap: "wrap", alignItems: "center" }}>
           <button className="chip" onClick={() => pickScope("due")} style={chipStyle(scope === "due", INK.candle)}>Due now {dueNow > 0 ? `(${dueNow})` : ""}</button>
           <button className="chip" onClick={() => pickScope("all")} style={chipStyle(scope === "all", INK.text)}>Whole deck</button>
+          <span style={{ width: 1, height: 22, background: INK.line, margin: "0 2px" }} />
+          <button className="chip" onClick={() => { setReversed((v) => !v); setFlipped(false); }}
+            style={chipStyle(reversed, SCHOOL_INK.folium)}>{reversed ? "Name the spell" : "Turn it around"}</button>
         </div>
 
         <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
@@ -1679,7 +1682,14 @@ function FlashCards({ inscribed, reviews, setReviews }) {
                     {stand && <span className="arc mono" style={{ fontSize: 11.5, letterSpacing: 1, color: GRADE[stand.last].ink, flex: "0 0 auto" }}>{GRADE[stand.last].label.toUpperCase()}</span>}
                   </div>
                   <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "10px 0" }}>
-                    <div className="arc" style={{ fontSize: "clamp(30px,6vw,48px)", fontWeight: 700, color: sc.color, lineHeight: 1.1 }}>{card.name}</div>
+                    {reversed ? (
+                      <div>
+                        <div style={{ fontSize: "clamp(15px,2.4vw,18px)", color: INK.text, lineHeight: 1.5, maxWidth: 400 }}>{card.desc}</div>
+                        <div className="arc" style={{ fontSize: 13, color: INK.faint, marginTop: 14, fontStyle: "italic" }}>Which spell is this?</div>
+                      </div>
+                    ) : (
+                      <div className="arc" style={{ fontSize: "clamp(30px,6vw,48px)", fontWeight: 700, color: sc.color, lineHeight: 1.1 }}>{card.name}</div>
+                    )}
                   </div>
                   <div style={{ textAlign: "center" }}>
                     {stand && <div className="arc" style={{ fontSize: 12, color: INK.faint, marginBottom: 4 }}>{dueIn(stand, builtAt)}</div>}
@@ -1689,9 +1699,18 @@ function FlashCards({ inscribed, reviews, setReviews }) {
 
                 {/* back: what it is, and when you reach for it */}
                 <div className="flip-face flip-back leafsheet" style={{ background: INK.pageHi, border: `1.5px solid ${sc.color}`, borderRadius: "2px 18px 2px 2px", padding: "20px 22px" }}>
-                  <div className="arc mono" style={{ fontSize: 11.5, letterSpacing: 1, color: INK.faint }}>{card.name.toUpperCase()}</div>
-                  <div className="arc" style={{ fontSize: 20, fontWeight: 700, color: sc.color, lineHeight: 1.15, marginTop: 2 }}>{card.real}</div>
-                  <p style={{ color: INK.dim, fontSize: 14.5, lineHeight: 1.55, marginTop: 10 }}>{card.desc}</p>
+                  {reversed ? (
+                    <>
+                      <div className="arc" style={{ fontSize: "clamp(24px,4vw,32px)", fontWeight: 700, color: sc.color, lineHeight: 1.1 }}>{card.name}</div>
+                      <div className="arc mono" style={{ fontSize: 12, letterSpacing: 1, color: INK.faint, marginTop: 3 }}>{card.real.toUpperCase()}</div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="arc mono" style={{ fontSize: 11.5, letterSpacing: 1, color: INK.faint }}>{card.name.toUpperCase()}</div>
+                      <div className="arc" style={{ fontSize: 20, fontWeight: 700, color: sc.color, lineHeight: 1.15, marginTop: 2 }}>{card.real}</div>
+                      <p style={{ color: INK.dim, fontSize: 14.5, lineHeight: 1.55, marginTop: 10 }}>{card.desc}</p>
+                    </>
+                  )}
                   <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
                     <MemoryRow color={INK.candle} label="REACH FOR IT WHEN">{card.when}</MemoryRow>
                   </div>
