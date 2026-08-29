@@ -10,6 +10,8 @@ Play it in your browser: [bmallegri.github.io/python-spellbook](https://bmallegr
 
 Open a spell and you get the line in plain English, when to reach for it, and the exact way it goes wrong. The code arrives as scrambled tokens and you put them back in order, three times, in three different situations. There are 70 spells across two tracks, three projects, and a card battle where the script only compiles if you stack the lines in the order Python runs them. Before it fires, the duel asks one question about the script you just wrote: which line makes the name this one needs, which line breaks if you delete that one, which line Python reaches first.
 
+Anything you inscribe also turns up in Flash Cards: the name on the front, what it does and when to reach for it on the back. That one is early on purpose. It only turns a card over so far, and the page says what is still missing.
+
 ![A spell open in the book](docs/spell-card.png)
 
 ## Run it locally
