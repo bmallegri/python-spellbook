@@ -1468,6 +1468,185 @@ function WorkingWorld({ inscribed, setInscribed, setMisdraws }) {
   );
 }
 
+// ---- Flash Cards -----------------------------------------------------------
+// Early version. Name on the front, what it does and when to reach for it on
+// the back. Only spells already inscribed in a main track land in the deck.
+
+const FLASH_CSS = `
+  .flip { perspective: 1600px; }
+  .flip-inner { position: relative; width: 100%; height: 100%; transition: transform .5s cubic-bezier(.2,.7,.2,1); transform-style: preserve-3d; }
+  .flip.on .flip-inner { transform: rotateY(180deg); }
+  .flip-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow-y: auto; }
+  .flip-back { transform: rotateY(180deg); }
+  @media (prefers-reduced-motion: reduce) { .flip-inner { transition: none } }
+`;
+
+const FLASH_DECK = [
+  ...SPELL.map((s) => ({ ...s, track: "story" })),
+  ...WORK.map((s) => ({ ...s, track: "work" })),
+];
+
+const TRACK_NAME = { story: "Story Mode", work: "The Working World" };
+const trackSchool = (c) => (c.track === "story" ? SCHOOL : WORK_SCHOOL)[c.school];
+
+// the parts of this that aren't built yet, said plainly rather than hidden
+const FLASH_SOON = [
+  ["Rate each card", "Easy, shaky, lost. The shaky ones come back before the easy ones do."],
+  ["Spaced repetition", "A card you keep missing turns up tomorrow. One you know waits a month."],
+  ["Turn the card around", "Definition on the front, and you have to name the spell yourself."],
+  ["Write it, don't just read it", "Type the line from memory before the back will open."],
+  ["A run of ten", "One short pass, and then it tells you to stop for the day."],
+];
+
+function FlashCards({ inscribed }) {
+  const [track, setTrack] = useState("all");
+  const [idx, setIdx] = useState(0);
+  const [flipped, setFlipped] = useState(false);
+  const [order, setOrder] = useState(null);   // null = book order, else ids in drawn order
+
+  const deck = useMemo(() => {
+    const inked = new Set(Object.keys(inscribed).filter((k) => inscribed[k]));
+    const pick = FLASH_DECK.filter((c) => inked.has(c.id) && (track === "all" || c.track === track));
+    if (!order) return pick;
+    const rank = new Map(order.map((id, i) => [id, i]));
+    return pick.slice().sort((a, b) => (rank.has(a.id) ? rank.get(a.id) : 1e9) - (rank.has(b.id) ? rank.get(b.id) : 1e9));
+  }, [inscribed, track, order]);
+
+  const at = deck.length ? Math.min(idx, deck.length - 1) : 0;
+  const card = deck[at];
+
+  const go = (step) => {
+    if (!deck.length) return;
+    setFlipped(false);
+    setIdx((n) => (Math.min(n, deck.length - 1) + step + deck.length) % deck.length);
+  };
+  const pickTrack = (t) => { setTrack(t); setIdx(0); setFlipped(false); };
+  const draw = () => {
+    const ids = deck.map((c) => c.id);
+    setOrder(shuffled(ids.length).map((i) => ids[i]));
+    setIdx(0); setFlipped(false);
+  };
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.target !== document.body) return;   // don't fight a focused button
+      if (e.key === "ArrowRight") go(1);
+      else if (e.key === "ArrowLeft") go(-1);
+      else if (e.key === " " || e.key === "Enter") { e.preventDefault(); setFlipped((f) => !f); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  const total = FLASH_DECK.length;
+  const inkedCount = FLASH_DECK.filter((c) => inscribed[c.id]).length;
+  const sc = card ? trackSchool(card) : null;
+
+  return (
+    <div style={{ color: INK.text, minHeight: "100vh", fontFamily: "'Vollkorn', Georgia, serif", padding: "clamp(14px, 3.5vw, 34px)" }}>
+      <style>{FLASH_CSS}</style>
+      <div style={{ maxWidth: 760, margin: "0 auto" }}>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 14, flexWrap: "wrap" }}>
+          <div style={{ flex: "1 1 340px" }}>
+            <div className="arc" style={{ fontSize: "clamp(26px,4.5vw,42px)", fontWeight: 700, display: "flex", alignItems: "center", gap: 12 }}>
+              Flash Cards
+              <span className="arc" style={{ fontSize: 11, letterSpacing: 1.4, color: INK.brass, border: `1px solid ${INK.brass}66`, borderRadius: 99, padding: "3px 9px" }}>EARLY</span>
+            </div>
+            <div style={{ color: INK.dim, fontSize: 15, marginTop: 8, maxWidth: 640, lineHeight: 1.5 }}>
+              The spells you have already inscribed, one at a time. The name on the front, what it does and when to reach for it on the back.
+            </div>
+          </div>
+          <div style={{ marginLeft: "auto", textAlign: "right" }}>
+            <div className="arc" style={{ fontSize: 12, color: INK.faint, letterSpacing: 1 }}>IN THE DECK</div>
+            <div className="arc" style={{ fontSize: 32, fontWeight: 700, color: INK.candle, lineHeight: 1.1 }}>{inkedCount}</div>
+            <div className="arc" style={{ fontSize: 13, color: INK.dim }}>of {total} spells inscribed</div>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 8, marginTop: 18, flexWrap: "wrap" }}>
+          <button className="chip" onClick={() => pickTrack("all")} style={chipStyle(track === "all", INK.text)}>Both Tracks</button>
+          <button className="chip" onClick={() => pickTrack("story")} style={chipStyle(track === "story", SCHOOL.inscription.color)}>Story Mode</button>
+          <button className="chip" onClick={() => pickTrack("work")} style={chipStyle(track === "work", "#8a4f26")}>Working World</button>
+        </div>
+
+        {!card ? (
+          <div style={{ marginTop: 20, background: INK.page, border: `1px solid ${INK.line}`, borderRadius: "2px 2px 2px 18px", padding: "34px 24px", textAlign: "center" }}>
+            <div className="arc" style={{ fontSize: 20, fontWeight: 700, color: INK.candle }}>Nothing to turn over yet.</div>
+            <div style={{ color: INK.dim, fontSize: 14.5, marginTop: 8, lineHeight: 1.5, maxWidth: 460, margin: "8px auto 0" }}>
+              {track === "all"
+                ? "Inscribe a spell in Story Mode or the Working World and it lands here as a card."
+                : `Nothing inscribed in ${TRACK_NAME[track]} yet. Finish one there, or look at both tracks.`}
+            </div>
+          </div>
+        ) : (
+          <div style={{ maxWidth: 520, margin: "0 auto" }}>
+            <div
+              className={`flip${flipped ? " on" : ""}`}
+              role="button"
+              tabIndex={0}
+              aria-label={flipped ? `${card.name}, back of card` : `${card.name}, front of card. Turn it over.`}
+              onClick={() => setFlipped((f) => !f)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setFlipped((f) => !f); } }}
+              style={{ marginTop: 18, height: "clamp(330px, 52vh, 430px)", cursor: "pointer" }}
+            >
+              <div className="flip-inner">
+                {/* front: just the word */}
+                <div className="flip-face" style={{ background: INK.pageHi, border: `1.5px solid ${sc.color}`, borderRadius: "2px 2px 2px 18px", padding: "22px 24px", display: "flex", flexDirection: "column" }}>
+                  <div className="arc mono" style={{ fontSize: 11.5, letterSpacing: 1, color: INK.faint }}>
+                    {TRACK_NAME[card.track].toUpperCase()} · {sc.name.toUpperCase()} · RANK {card.rank}
+                  </div>
+                  <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "10px 0" }}>
+                    <div className="arc" style={{ fontSize: "clamp(30px,6vw,48px)", fontWeight: 700, color: sc.color, lineHeight: 1.1 }}>{card.name}</div>
+                  </div>
+                  <div className="arc" style={{ fontSize: 12.5, letterSpacing: 1, color: INK.faint, textAlign: "center" }}>TURN IT OVER</div>
+                </div>
+
+                {/* back: what it is, and when you reach for it */}
+                <div className="flip-face flip-back leafsheet" style={{ background: INK.pageHi, border: `1.5px solid ${sc.color}`, borderRadius: "2px 18px 2px 2px", padding: "20px 22px" }}>
+                  <div className="arc mono" style={{ fontSize: 11.5, letterSpacing: 1, color: INK.faint }}>{card.name.toUpperCase()}</div>
+                  <div className="arc" style={{ fontSize: 20, fontWeight: 700, color: sc.color, lineHeight: 1.15, marginTop: 2 }}>{card.real}</div>
+                  <p style={{ color: INK.dim, fontSize: 14.5, lineHeight: 1.55, marginTop: 10 }}>{card.desc}</p>
+                  <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+                    <MemoryRow color={INK.candle} label="REACH FOR IT WHEN">{card.when}</MemoryRow>
+                  </div>
+                  <pre className="mono codeleaf" style={{ marginTop: 12, padding: 12, fontSize: 12.5, overflowX: "auto", lineHeight: 1.6, whiteSpace: "pre" }}>{card.code}</pre>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
+              <button className="btn" onClick={(e) => { e.stopPropagation(); go(-1); }} style={{ fontSize: 13.5, color: INK.dim, border: `1px solid ${INK.line}`, borderRadius: 99, padding: "7px 16px" }}>Back</button>
+              <button className="btn" onClick={() => setFlipped((f) => !f)} style={{ fontSize: 14, fontWeight: 700, background: INK.candle, color: INK.onAccent, borderRadius: 2, padding: "9px 20px" }}>{flipped ? "Show the word" : "Flip"}</button>
+              <button className="btn" onClick={(e) => { e.stopPropagation(); go(1); }} style={{ fontSize: 13.5, color: INK.dim, border: `1px solid ${INK.line}`, borderRadius: 99, padding: "7px 16px" }}>Next</button>
+              <span className="arc mono" style={{ fontSize: 12.5, color: INK.faint, letterSpacing: 1 }}>{at + 1} / {deck.length}</span>
+              <button className="btn" onClick={draw} style={{ marginLeft: "auto", fontSize: 13, color: INK.dim, border: `1px solid ${INK.line}`, borderRadius: 99, padding: "7px 16px" }}>Shuffle</button>
+            </div>
+            <div style={{ fontSize: 12.5, color: INK.faint, marginTop: 8 }}>Arrow keys move, space turns the card over.</div>
+          </div>
+        )}
+
+        <div style={{ marginTop: 26, background: INK.page, border: `1px dashed ${INK.lineHi}`, borderRadius: 3, padding: "16px 18px" }}>
+          <div className="arc" style={{ fontSize: 17, fontWeight: 700, display: "flex", alignItems: "center", gap: 10 }}>
+            Not finished
+            <span className="arc" style={{ fontSize: 10.5, letterSpacing: 1.4, color: INK.brass, border: `1px solid ${INK.brass}66`, borderRadius: 99, padding: "2px 8px" }}>COMING SOON</span>
+          </div>
+          <div style={{ color: INK.dim, fontSize: 13.5, marginTop: 6, lineHeight: 1.45 }}>
+            Right now a card only turns over. These are the parts still to come.
+          </div>
+          <div style={{ display: "grid", gap: 8, marginTop: 14, gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))" }}>
+            {FLASH_SOON.map(([title, blurb]) => (
+              <div key={title} style={{ opacity: 0.66, background: INK.pageHi, border: `1px solid ${INK.line}`, borderRadius: 2, padding: "11px 13px" }}>
+                <div className="arc" style={{ fontSize: 14.5, fontWeight: 700, color: INK.dim }}>{title}</div>
+                <div style={{ fontSize: 12.5, color: INK.faint, marginTop: 3, lineHeight: 1.45 }}>{blurb}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function StatCard({ label, value, sub, color }) {
   return (
     <div style={{ background: INK.page, border: `1.5px solid ${INK.line}`, borderTop: `3px solid ${color || INK.candle}`, borderRadius: 3, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 4 }}>
@@ -1686,6 +1865,7 @@ ${SCROLL_CSS}`}</style>
         <DeskTab active={mode === "story"} onClick={() => setMode("story")} label="Story Mode" />
         <DeskTab active={mode === "work"} onClick={() => setMode("work")} label="Working World" />
         <DeskTab active={mode === "duel"} onClick={() => setMode("duel")} label="Spell Duel" />
+        <DeskTab active={mode === "flash"} onClick={() => setMode("flash")} label="Flash Cards" />
         <DeskTab active={mode === "profile"} onClick={() => setMode("profile")} label="Your Standing" />
       </div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, padding: "8px 16px 0", maxWidth: 360, margin: "0 auto", color: INK.candle }}>
@@ -1696,6 +1876,7 @@ ${SCROLL_CSS}`}</style>
       </div>
       {mode === "work" && <ErrorBoundary label="the Working World"><WorkingWorld inscribed={inscribed} setInscribed={setInscribed} setMisdraws={setMisdraws} /></ErrorBoundary>}
       {mode === "duel" && <ErrorBoundary label="the Spell Duel"><SpellDuel inscribed={inscribed} /></ErrorBoundary>}
+      {mode === "flash" && <ErrorBoundary label="the Flash Cards"><FlashCards inscribed={inscribed} /></ErrorBoundary>}
       {mode === "profile" && <ErrorBoundary label="Your Standing"><Profile inscribed={inscribed} cleared={cleared} misdraws={misdraws} /></ErrorBoundary>}
     </div>
   );

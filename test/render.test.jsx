@@ -33,7 +33,7 @@ describe("the app", () => {
 
   it("opens every mode without crashing", async () => {
     await render();
-    for (const mode of ["Working World", "Spell Duel", "Your Standing", "Story Mode"]) {
+    for (const mode of ["Working World", "Spell Duel", "Flash Cards", "Your Standing", "Story Mode"]) {
       await click(button(mode));
       expect(text().length, `${mode} rendered empty`).toBeGreaterThan(400);
     }
@@ -95,6 +95,26 @@ describe("the duel", () => {
     const real = errors.filter((e) => /ReferenceError|is not defined|is not a function/.test(e));
     expect(real, real[0]).toHaveLength(0);
   }, 20000);
+});
+
+describe("the flash cards", () => {
+  it("says the deck is empty before anything is inscribed", async () => {
+    await render();
+    await click(button("Flash Cards"));
+    expect(text()).toContain("Nothing to turn over yet");
+    expect(text()).toContain("COMING SOON");
+  });
+
+  it("deals a card once a spell is inscribed", async () => {
+    await render();
+    localStorage.setItem("spellbook.save.v1", JSON.stringify({ inscribed: { varibuddy: true } }));
+    document.body.innerHTML = "";
+    await render();
+    await click(button("Flash Cards"));
+    expect(text()).toContain("Variables");
+    expect(text()).toContain("TURN IT OVER");
+    expect(text()).toContain("1 / 1");
+  });
 });
 
 describe("saving", () => {
