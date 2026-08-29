@@ -117,6 +117,55 @@ describe("the flash cards", () => {
   });
 });
 
+describe("rating a card", () => {
+  const seeded = () => localStorage.setItem("spellbook.save.v1",
+    JSON.stringify({ inscribed: { varibuddy: true, condifork: true } }));
+
+  it("only offers a grading once the card is turned over", async () => {
+    seeded();
+    await render();
+    await click(button("Flash Cards"));
+    expect(text()).toContain("Turn it over, then say how it went");
+    expect(button("Easy")).toBeUndefined();
+    await click(button("Flip"));
+    expect(button("Easy")).toBeTruthy();
+  });
+
+  it("keeps the grading, the count and the last one", async () => {
+    seeded();
+    await render();
+    await click(button("Flash Cards"));
+    await click(button("Flip"));
+    await click(button("Shaky"));
+    const saved = JSON.parse(localStorage.getItem("spellbook.save.v1"));
+    expect(saved.reviews.varibuddy).toMatchObject({ last: "shaky", seen: 1, shaky: 1, easy: 0 });
+  });
+
+  it("moves on to the next card once graded", async () => {
+    seeded();
+    await render();
+    await click(button("Flash Cards"));
+    expect(text()).toContain("1 / 2");
+    await click(button("Flip"));
+    await click(button("Easy"));
+    expect(text()).toContain("2 / 2");
+  });
+
+  // the save is written from Spellbook, which holds every key. Written from
+  // inside a mode it would drop the keys that mode cannot see.
+  it("does not lose ratings when another mode saves", async () => {
+    seeded();
+    await render();
+    await click(button("Flash Cards"));
+    await click(button("Flip"));
+    await click(button("Easy"));
+    await click(button("Story Mode"));
+    await click(find("button.page-card").find((b) => !b.disabled));
+    const saved = JSON.parse(localStorage.getItem("spellbook.save.v1"));
+    expect(saved.reviews.varibuddy, "a spell page wiped the ratings").toBeTruthy();
+  });
+});
+
 describe("saving", () => {
   it("writes progress under the current key", async () => {
     await render();

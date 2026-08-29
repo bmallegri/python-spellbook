@@ -1485,6 +1485,21 @@ const FLASH_DECK = [
 ];
 
 const TRACK_NAME = { story: "Story Mode", work: "The Working World" };
+
+// Three gradings, borrowing the state inks: it held, it wobbled, it was gone.
+const GRADE = {
+  easy: { label: "Easy", ink: INSCRIBED_INK },
+  shaky: { label: "Shaky", ink: FORMING_INK },
+  lost: { label: "Lost", ink: INK.oxblood },
+};
+const GRADES = ["easy", "shaky", "lost"];
+
+// A rating keeps the running counts as well as the last one, because a card
+// missed three times and passed once is not the card the last grade describes.
+function graded(prev, grade) {
+  const was = prev || { seen: 0, easy: 0, shaky: 0, lost: 0 };
+  return { ...was, last: grade, seen: was.seen + 1, [grade]: was[grade] + 1, at: Date.now() };
+}
 const trackSchool = (c) => (c.track === "story" ? SCHOOL : WORK_SCHOOL)[c.school];
 
 // the parts of this that aren't built yet, said plainly rather than hidden
@@ -1496,7 +1511,7 @@ const FLASH_SOON = [
   ["A run of ten", "One short pass, and then it tells you to stop for the day."],
 ];
 
-function FlashCards({ inscribed }) {
+function FlashCards({ inscribed, setReviews }) {
   const [track, setTrack] = useState("all");
   const [idx, setIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);
@@ -1518,6 +1533,11 @@ function FlashCards({ inscribed }) {
     setFlipped(false);
     setIdx((n) => (Math.min(n, deck.length - 1) + step + deck.length) % deck.length);
   };
+  const rate = (grade) => {
+    if (!card) return;
+    setReviews((r) => ({ ...r, [card.id]: graded(r[card.id], grade) }));
+    go(1);
+  };
   const pickTrack = (t) => { setTrack(t); setIdx(0); setFlipped(false); };
   const draw = () => {
     const ids = deck.map((c) => c.id);
@@ -1531,6 +1551,7 @@ function FlashCards({ inscribed }) {
       if (e.key === "ArrowRight") go(1);
       else if (e.key === "ArrowLeft") go(-1);
       else if (e.key === " " || e.key === "Enter") { e.preventDefault(); setFlipped((f) => !f); }
+      else if (flipped && "123".includes(e.key)) rate(GRADES[Number(e.key) - 1]);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -1612,14 +1633,30 @@ function FlashCards({ inscribed }) {
               </div>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
+            <div style={{ minHeight: 40, display: "flex", alignItems: "center", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+              {flipped ? (
+                <>
+                  <span className="arc" style={{ fontSize: 12.5, letterSpacing: 1, color: INK.faint }}>HOW DID THAT GO?</span>
+                  {GRADES.map((g) => (
+                    <button key={g} className="btn" onClick={() => rate(g)}
+                      style={{ fontSize: 13.5, fontWeight: 600, color: GRADE[g].ink, border: `1px solid ${GRADE[g].ink}66`, borderRadius: 99, padding: "6px 15px" }}>
+                      {GRADE[g].label}
+                    </button>
+                  ))}
+                </>
+              ) : (
+                <span style={{ fontSize: 13, color: INK.faint, fontStyle: "italic" }}>Turn it over, then say how it went.</span>
+              )}
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4, flexWrap: "wrap" }}>
               <button className="btn" onClick={(e) => { e.stopPropagation(); go(-1); }} style={{ fontSize: 13.5, color: INK.dim, border: `1px solid ${INK.line}`, borderRadius: 99, padding: "7px 16px" }}>Back</button>
               <button className="btn" onClick={() => setFlipped((f) => !f)} style={{ fontSize: 14, fontWeight: 700, background: INK.candle, color: INK.onAccent, borderRadius: 2, padding: "9px 20px" }}>{flipped ? "Show the word" : "Flip"}</button>
               <button className="btn" onClick={(e) => { e.stopPropagation(); go(1); }} style={{ fontSize: 13.5, color: INK.dim, border: `1px solid ${INK.line}`, borderRadius: 99, padding: "7px 16px" }}>Next</button>
               <span className="arc mono" style={{ fontSize: 12.5, color: INK.faint, letterSpacing: 1 }}>{at + 1} / {deck.length}</span>
               <button className="btn" onClick={draw} style={{ marginLeft: "auto", fontSize: 13, color: INK.dim, border: `1px solid ${INK.line}`, borderRadius: 99, padding: "7px 16px" }}>Shuffle</button>
             </div>
-            <div style={{ fontSize: 12.5, color: INK.faint, marginTop: 8 }}>Arrow keys move, space turns the card over.</div>
+            <div style={{ fontSize: 12.5, color: INK.faint, marginTop: 8 }}>Arrow keys move, space turns the card over, 1 2 3 rate it.</div>
           </div>
         )}
 
@@ -1879,7 +1916,7 @@ ${SCROLL_CSS}`}</style>
       </div>
       {mode === "work" && <ErrorBoundary label="the Working World"><WorkingWorld inscribed={inscribed} setInscribed={setInscribed} setMisdraws={setMisdraws} /></ErrorBoundary>}
       {mode === "duel" && <ErrorBoundary label="the Spell Duel"><SpellDuel inscribed={inscribed} /></ErrorBoundary>}
-      {mode === "flash" && <ErrorBoundary label="the Flash Cards"><FlashCards inscribed={inscribed} /></ErrorBoundary>}
+      {mode === "flash" && <ErrorBoundary label="the Flash Cards"><FlashCards inscribed={inscribed} setReviews={setReviews} /></ErrorBoundary>}
       {mode === "profile" && <ErrorBoundary label="Your Standing"><Profile inscribed={inscribed} cleared={cleared} misdraws={misdraws} /></ErrorBoundary>}
     </div>
   );
