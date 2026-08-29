@@ -40,7 +40,7 @@ function shuffled(n) {
   return a;
 }
 
-function Grimoire({ inscribed, setInscribed, cleared, setCleared, misdraws, setMisdraws }) {
+function Grimoire({ inscribed, setInscribed, cleared, setCleared, setMisdraws, setReviews }) {
   const [openSpell, setOpenSpell] = useState(null);
   const [filter, setFilter] = useState("all");
   const [celebrate, setCelebrate] = useState(null);
@@ -84,11 +84,9 @@ function Grimoire({ inscribed, setInscribed, cleared, setCleared, misdraws, setM
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  useEffect(() => { writeGrimoire({ inscribed, cleared, misdraws }); }, [inscribed, cleared, misdraws]);
-
   const resetProgress = () => {
     if (!window.confirm("Strip every page back to blank and begin again?")) return;
-    setInscribed({}); setCleared({}); setMisdraws({});
+    setInscribed({}); setCleared({}); setMisdraws({}); setReviews({});
     setOpenSpell(null);
     burnGrimoire();
   };
@@ -1856,6 +1854,11 @@ function Spellbook() {
   const [inscribed, setInscribed] = useState(() => readGrimoire().inscribed || {});
   const [cleared, setCleared] = useState(() => readGrimoire().cleared || {});
   const [misdraws, setMisdraws] = useState(() => readGrimoire().misdraws || {});
+  const [reviews, setReviews] = useState(() => readGrimoire().reviews || {});
+
+  // Every mode's progress is written from here, the one place that holds all of
+  // it. Written from inside a mode, a save drops the keys that mode cannot see.
+  useEffect(() => { writeGrimoire({ inscribed, cleared, misdraws, reviews }); }, [inscribed, cleared, misdraws, reviews]);
   return (
     <div className="ground" style={{ minHeight: "100vh" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Vollkorn:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=IBM+Plex+Mono:wght@400;500&display=swap');
@@ -1872,7 +1875,7 @@ ${SCROLL_CSS}`}</style>
         <span style={{ flex: 1, height: 1, background: `${INK.candle}44` }} />
       </div>
       <div style={{ display: mode === "story" ? "block" : "none" }}>
-        <ErrorBoundary label="Story Mode"><Grimoire inscribed={inscribed} setInscribed={setInscribed} cleared={cleared} setCleared={setCleared} misdraws={misdraws} setMisdraws={setMisdraws} /></ErrorBoundary>
+        <ErrorBoundary label="Story Mode"><Grimoire inscribed={inscribed} setInscribed={setInscribed} cleared={cleared} setCleared={setCleared} setMisdraws={setMisdraws} setReviews={setReviews} /></ErrorBoundary>
       </div>
       {mode === "work" && <ErrorBoundary label="the Working World"><WorkingWorld inscribed={inscribed} setInscribed={setInscribed} setMisdraws={setMisdraws} /></ErrorBoundary>}
       {mode === "duel" && <ErrorBoundary label="the Spell Duel"><SpellDuel inscribed={inscribed} /></ErrorBoundary>}
