@@ -209,6 +209,48 @@ describe("when a card comes back", () => {
   });
 });
 
+describe("writing the line from memory", () => {
+  const type = async (el, value) => act(async () => {
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").set;
+    setter.call(el, value);
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  const sheet = () => find("textarea")[0];
+
+  const open = async () => {
+    localStorage.setItem("spellbook.save.v1", JSON.stringify({ inscribed: { varibuddy: true } }));
+    await render();
+    await click(button("Flash Cards"));
+    await click(button("Write it"));
+  };
+
+  it("holds the back shut until the line is right", async () => {
+    await open();
+    await type(sheet(), "hero = 'nope'");
+    await click(button("Check"));
+    expect(text()).toContain("Not that line");
+    expect(button("Easy"), "the back opened on a wrong line").toBeUndefined();
+  });
+
+  it("opens the back on the right line, forgiving the whitespace", async () => {
+    await open();
+    await type(sheet(), 'hero   =  "Luna"\n   level = 7\nprint(f"{hero} reached level {level}")');
+    await click(button("Check"));
+    expect(button("Easy"), "the right line should open the back").toBeTruthy();
+  });
+
+  it("offers no Flip button to walk around the check", async () => {
+    await open();
+    expect(button("Flip"), "Flip bypassed the writing check").toBeUndefined();
+  });
+
+  it("still lets you ask to be shown", async () => {
+    await open();
+    await click(button("Show me"));
+    expect(button("Easy")).toBeTruthy();
+  });
+});
+
 describe("saving", () => {
   it("writes progress under the current key", async () => {
     await render();

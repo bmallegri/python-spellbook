@@ -1524,11 +1524,14 @@ function dueIn(rev, now) {
   const days = Math.ceil((rev.due - now) / DAY);
   return days === 1 ? "due tomorrow" : `due in ${days} days`;
 }
+// Indentation is the thing you retype wrong and do not mean; the words are
+// the thing you are being asked to remember. So whitespace is forgiven.
+const looseCode = (t) => t.replace(/\s+/g, " ").trim();
+
 const trackSchool = (c) => (c.track === "story" ? SCHOOL : WORK_SCHOOL)[c.school];
 
 // the parts of this that aren't built yet, said plainly rather than hidden
 const FLASH_SOON = [
-  ["Write it, don't just read it", "Type the line from memory before the back will open."],
   ["A run of ten", "One short pass, and then it tells you to stop for the day."],
 ];
 
@@ -1539,6 +1542,9 @@ function FlashCards({ inscribed, reviews, setReviews }) {
   const [order, setOrder] = useState(null);   // null = book order, else ids in drawn order
   const [scope, setScope] = useState("due");
   const [reversed, setReversed] = useState(false);
+  const [writing, setWriting] = useState(false);
+  const [typed, setTyped] = useState("");
+  const [missed, setMissed] = useState(false);
   // The deck is built once and held. Rating inside a pass must not pull the
   // card you just answered out from under the index you are sitting on.
   const [builtAt, setBuiltAt] = useState(() => Date.now());
@@ -1562,8 +1568,13 @@ function FlashCards({ inscribed, reviews, setReviews }) {
 
   const go = (step) => {
     if (!deck.length) return;
-    setFlipped(false);
+    setFlipped(false); setTyped(""); setMissed(false);
     setIdx((n) => (Math.min(n, deck.length - 1) + step + deck.length) % deck.length);
+  };
+  const check = () => {
+    if (!card) return;
+    if (looseCode(typed) === looseCode(card.code)) { setMissed(false); setFlipped(true); }
+    else { setMissed(true); setTimeout(() => setMissed(false), 600); }
   };
   const rate = (grade) => {
     if (!card) return;
@@ -1625,6 +1636,8 @@ function FlashCards({ inscribed, reviews, setReviews }) {
           <span style={{ width: 1, height: 22, background: INK.line, margin: "0 2px" }} />
           <button className="chip" onClick={() => { setReversed((v) => !v); setFlipped(false); }}
             style={chipStyle(reversed, SCHOOL_INK.folium)}>{reversed ? "Name the spell" : "Turn it around"}</button>
+          <button className="chip" onClick={() => { setWriting((v) => !v); setTyped(""); setMissed(false); setFlipped(false); }}
+            style={chipStyle(writing, SCHOOL_INK.verte)}>{writing ? "Writing it" : "Write it"}</button>
         </div>
 
         <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
@@ -1668,8 +1681,8 @@ function FlashCards({ inscribed, reviews, setReviews }) {
               role="button"
               tabIndex={0}
               aria-label={flipped ? `${card.name}, back of card` : `${card.name}, front of card. Turn it over.`}
-              onClick={() => setFlipped((f) => !f)}
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setFlipped((f) => !f); } }}
+              onClick={() => { if (!writing || flipped) setFlipped((f) => !f); }}
+              onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && (!writing || flipped)) { e.preventDefault(); setFlipped((f) => !f); } }}
               style={{ marginTop: 18, height: "clamp(330px, 52vh, 430px)", cursor: "pointer" }}
             >
               <div className="flip-inner">
@@ -1719,6 +1732,26 @@ function FlashCards({ inscribed, reviews, setReviews }) {
               </div>
             </div>
 
+            {writing && !flipped && (
+              <div className={missed ? "fizzle" : ""} style={{ marginTop: 12 }}>
+                <div className="arc" style={{ fontSize: 12.5, letterSpacing: 1, color: INK.faint, marginBottom: 6 }}>WRITE THE LINE FROM MEMORY</div>
+                <textarea value={typed} onChange={(e) => setTyped(e.target.value)} spellCheck="false" rows={4}
+                  onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); check(); } }}
+                  style={{ width: "100%", resize: "vertical", fontFamily: "'IBM Plex Mono', monospace", fontSize: 13, lineHeight: 1.6,
+                    padding: 12, borderRadius: 2, color: INK.vellumInk, background: INK.vellum,
+                    border: `1px solid ${missed ? "#8f3a2a" : INK.vellumEdge}`, borderLeft: `3px solid ${missed ? "#8f3a2a" : INK.candle}` }} />
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
+                  <button className="btn" onClick={check} disabled={!typed.trim()}
+                    style={{ fontSize: 14, fontWeight: 700, borderRadius: 2, padding: "8px 18px",
+                      background: typed.trim() ? SCHOOL_INK.verte : INK.ink, color: typed.trim() ? INK.onAccent : INK.faint,
+                      cursor: typed.trim() ? "pointer" : "default" }}>Check</button>
+                  <button className="btn" onClick={() => { setMissed(false); setFlipped(true); }}
+                    style={{ fontSize: 13, color: INK.faint, border: `1px solid ${INK.line}`, borderRadius: 99, padding: "6px 14px" }}>Show me</button>
+                  {missed && <span style={{ color: "#8f3a2a", fontSize: 13 }}>Not that line. Read it back and try again.</span>}
+                </div>
+              </div>
+            )}
+
             <div style={{ minHeight: 40, display: "flex", alignItems: "center", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
               {flipped ? (
                 <>
@@ -1731,13 +1764,17 @@ function FlashCards({ inscribed, reviews, setReviews }) {
                   ))}
                 </>
               ) : (
-                <span style={{ fontSize: 13, color: INK.faint, fontStyle: "italic" }}>Turn it over, then say how it went.</span>
+                <span style={{ fontSize: 13, color: INK.faint, fontStyle: "italic" }}>
+                  {writing ? "Get the line right, or ask to be shown, then say how it went." : "Turn it over, then say how it went."}
+                </span>
               )}
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4, flexWrap: "wrap" }}>
               <button className="btn" onClick={(e) => { e.stopPropagation(); go(-1); }} style={{ fontSize: 13.5, color: INK.dim, border: `1px solid ${INK.line}`, borderRadius: 99, padding: "7px 16px" }}>Back</button>
-              <button className="btn" onClick={() => setFlipped((f) => !f)} style={{ fontSize: 14, fontWeight: 700, background: INK.candle, color: INK.onAccent, borderRadius: 2, padding: "9px 20px" }}>{flipped ? "Show the word" : "Flip"}</button>
+              {(!writing || flipped) && (
+                <button className="btn" onClick={() => setFlipped((f) => !f)} style={{ fontSize: 14, fontWeight: 700, background: INK.candle, color: INK.onAccent, borderRadius: 2, padding: "9px 20px" }}>{flipped ? "Show the word" : "Flip"}</button>
+              )}
               <button className="btn" onClick={(e) => { e.stopPropagation(); go(1); }} style={{ fontSize: 13.5, color: INK.dim, border: `1px solid ${INK.line}`, borderRadius: 99, padding: "7px 16px" }}>Next</button>
               <span className="arc mono" style={{ fontSize: 12.5, color: INK.faint, letterSpacing: 1 }}>{at + 1} / {deck.length}</span>
               <button className="btn" onClick={draw} style={{ marginLeft: "auto", fontSize: 13, color: INK.dim, border: `1px solid ${INK.line}`, borderRadius: 99, padding: "7px 16px" }}>Shuffle</button>
