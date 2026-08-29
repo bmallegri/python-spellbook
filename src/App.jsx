@@ -1850,22 +1850,22 @@ function reading(spell, inked, misdraws) {
   const slips = misdraws[spell.id] || 0;
   const known = inked.has(spell.id);
   if (!known && !slips) {
-    return { label: "No reading", ink: INK.faint,
+    return { kind: "none", label: "No reading", ink: INK.faint,
       why: "You haven't opened this one, so there's nothing to go on." };
   }
   if (!known) {
-    return { label: "Forming", ink: FORMING_INK,
+    return { kind: "forming", label: "Forming", ink: FORMING_INK,
       why: `Opened, not finished. ${slips} wrong ${slips === 1 ? "ordering" : "orderings"} so far.` };
   }
   if (slips === 0) {
-    return { label: "Solid", ink: INSCRIBED_INK,
+    return { kind: "solid", label: "Solid", ink: INSCRIBED_INK,
       why: "Laid correctly in all three contexts, first try each time." };
   }
   if (slips <= 3) {
-    return { label: "Solid", ink: INSCRIBED_INK,
+    return { kind: "solid", label: "Solid", ink: INSCRIBED_INK,
       why: `Held in all three contexts after ${slips} wrong ${slips === 1 ? "ordering" : "orderings"}.` };
   }
-  return { label: "Solid, with friction", ink: FORMING_INK,
+  return { kind: "friction", label: "Solid, with friction", ink: FORMING_INK,
     why: `It held, but it took ${slips} wrong orderings to get there. Worth another pass.` };
 }
 
@@ -1881,10 +1881,10 @@ function Gauge({ filled, ink }) {
 function ModelReadout({ spells, inked, misdraws, track }) {
   const rows = spells
     .map((s) => ({ spell: s, r: reading(s, inked, misdraws) }))
-    .filter((x) => x.r.label !== "No reading" || false);
+    .filter((x) => x.r.kind !== "none");
   const seen = rows.length;
-  const friction = rows.filter((x) => x.r.label === "Known, with friction");
-  const forming = rows.filter((x) => x.r.label === "Forming");
+  const friction = rows.filter((x) => x.r.kind === "friction");
+  const forming = rows.filter((x) => x.r.kind === "forming");
 
   return (
     <div>
@@ -1912,7 +1912,7 @@ function ModelReadout({ spells, inked, misdraws, track }) {
               <div key={spell.id} style={{ display: "flex", gap: 14, alignItems: "baseline",
                 padding: "11px 2px", borderTop: `1px solid ${INK.line}` }}>
                 <span style={{ minWidth: 22, paddingTop: 5 }}>
-                  <Gauge filled={r.label !== "Forming"} ink={r.ink} />
+                  <Gauge filled={r.kind !== "forming"} ink={r.ink} />
                 </span>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div className="arc" style={{ fontWeight: 600, fontSize: 15.5, color: INK.text }}>{spell.name}</div>

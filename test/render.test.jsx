@@ -279,6 +279,30 @@ describe("a run of ten", () => {
   });
 });
 
+describe("the standing readout", () => {
+  // it used to filter on the display label, so renaming the label silently
+  // emptied the row and it claimed everything had come out solid
+  it("lists a spell that held only after a lot of friction", async () => {
+    localStorage.setItem("spellbook.save.v1", JSON.stringify({
+      inscribed: { varibuddy: true },
+      misdraws: { varibuddy: 7 },
+    }));
+    await render();
+    await click(button("Your Standing"));
+    expect(text()).toContain("Solid, with friction");
+    expect(text(), "a friction spell was treated as nothing to report")
+      .not.toContain("Everything with a reading came out solid");
+  });
+
+  it("still says so when everything really is clean", async () => {
+    localStorage.setItem("spellbook.save.v1",
+      JSON.stringify({ inscribed: { varibuddy: true }, misdraws: {} }));
+    await render();
+    await click(button("Your Standing"));
+    expect(text()).toContain("Everything with a reading came out solid");
+  });
+});
+
 describe("saving", () => {
   it("writes progress under the current key", async () => {
     await render();
