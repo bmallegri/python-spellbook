@@ -1511,7 +1511,7 @@ const FLASH_SOON = [
   ["A run of ten", "One short pass, and then it tells you to stop for the day."],
 ];
 
-function FlashCards({ inscribed, setReviews }) {
+function FlashCards({ inscribed, reviews, setReviews }) {
   const [track, setTrack] = useState("all");
   const [idx, setIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);
@@ -1560,6 +1560,9 @@ function FlashCards({ inscribed, setReviews }) {
   const total = FLASH_DECK.length;
   const inkedCount = FLASH_DECK.filter((c) => inscribed[c.id]).length;
   const sc = card ? trackSchool(card) : null;
+  const stand = card ? reviews[card.id] : null;
+  const tally = (g) => deck.filter((c) => (reviews[c.id] || {}).last === g).length;
+  const unrated = deck.filter((c) => !reviews[c.id]).length;
 
   return (
     <div style={{ color: INK.text, minHeight: "100vh", fontFamily: "'Vollkorn', Georgia, serif", padding: "clamp(14px, 3.5vw, 34px)" }}>
@@ -1588,6 +1591,18 @@ function FlashCards({ inscribed, setReviews }) {
           <button className="chip" onClick={() => pickTrack("work")} style={chipStyle(track === "work", "#8a4f26")}>Working World</button>
         </div>
 
+        {deck.length > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 12, flexWrap: "wrap" }}>
+            {GRADES.map((g) => (
+              <span key={g} className="arc" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: INK.dim }}>
+                <span style={{ width: 9, height: 9, borderRadius: 99, background: GRADE[g].ink }} />
+                {tally(g)} {GRADE[g].label.toLowerCase()}
+              </span>
+            ))}
+            <span className="arc" style={{ fontSize: 13, color: INK.faint }}>{unrated} not yet rated</span>
+          </div>
+        )}
+
         {!card ? (
           <div style={{ marginTop: 20, background: INK.page, border: `1px solid ${INK.line}`, borderRadius: "2px 2px 2px 18px", padding: "34px 24px", textAlign: "center" }}>
             <div className="arc" style={{ fontSize: 20, fontWeight: 700, color: INK.candle }}>Nothing to turn over yet.</div>
@@ -1611,8 +1626,11 @@ function FlashCards({ inscribed, setReviews }) {
               <div className="flip-inner">
                 {/* front: just the word */}
                 <div className="flip-face" style={{ background: INK.pageHi, border: `1.5px solid ${sc.color}`, borderRadius: "2px 2px 2px 18px", padding: "22px 24px", display: "flex", flexDirection: "column" }}>
-                  <div className="arc mono" style={{ fontSize: 11.5, letterSpacing: 1, color: INK.faint }}>
-                    {TRACK_NAME[card.track].toUpperCase()} · {sc.name.toUpperCase()} · RANK {card.rank}
+                  <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+                    <span className="arc mono" style={{ fontSize: 11.5, letterSpacing: 1, color: INK.faint, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {TRACK_NAME[card.track].toUpperCase()} · {sc.name.toUpperCase()} · RANK {card.rank}
+                    </span>
+                    {stand && <span className="arc mono" style={{ fontSize: 11.5, letterSpacing: 1, color: GRADE[stand.last].ink, flex: "0 0 auto" }}>{GRADE[stand.last].label.toUpperCase()}</span>}
                   </div>
                   <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "10px 0" }}>
                     <div className="arc" style={{ fontSize: "clamp(30px,6vw,48px)", fontWeight: 700, color: sc.color, lineHeight: 1.1 }}>{card.name}</div>
@@ -1916,7 +1934,7 @@ ${SCROLL_CSS}`}</style>
       </div>
       {mode === "work" && <ErrorBoundary label="the Working World"><WorkingWorld inscribed={inscribed} setInscribed={setInscribed} setMisdraws={setMisdraws} /></ErrorBoundary>}
       {mode === "duel" && <ErrorBoundary label="the Spell Duel"><SpellDuel inscribed={inscribed} /></ErrorBoundary>}
-      {mode === "flash" && <ErrorBoundary label="the Flash Cards"><FlashCards inscribed={inscribed} setReviews={setReviews} /></ErrorBoundary>}
+      {mode === "flash" && <ErrorBoundary label="the Flash Cards"><FlashCards inscribed={inscribed} reviews={reviews} setReviews={setReviews} /></ErrorBoundary>}
       {mode === "profile" && <ErrorBoundary label="Your Standing"><Profile inscribed={inscribed} cleared={cleared} misdraws={misdraws} /></ErrorBoundary>}
     </div>
   );
