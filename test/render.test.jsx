@@ -166,6 +166,49 @@ describe("rating a card", () => {
   });
 });
 
+describe("when a card comes back", () => {
+  it("pushes an easy card out and brings a lost one back today", async () => {
+    localStorage.setItem("spellbook.save.v1",
+      JSON.stringify({ inscribed: { varibuddy: true, condifork: true } }));
+    await render();
+    await click(button("Flash Cards"));
+    await click(button("Flip"));
+    await click(button("Easy"));
+    await click(button("Flip"));
+    await click(button("Lost"));
+    const r = JSON.parse(localStorage.getItem("spellbook.save.v1")).reviews;
+    expect(r.varibuddy.due, "easy should wait a day").toBeGreaterThan(r.varibuddy.at);
+    expect(r.condifork.due, "lost should come round again today").toBe(r.condifork.at);
+    expect(r.varibuddy.step).toBe(1);
+    expect(r.condifork.step).toBe(0);
+  });
+
+  it("keeps a card that is not due out of the due pile", async () => {
+    const now = Date.now();
+    localStorage.setItem("spellbook.save.v1", JSON.stringify({
+      inscribed: { varibuddy: true, condifork: true },
+      reviews: { varibuddy: { last: "easy", seen: 1, easy: 1, shaky: 0, lost: 0, step: 3, at: now, due: now + 7 * 86400000 } },
+    }));
+    await render();
+    await click(button("Flash Cards"));
+    expect(text(), "only the unseen card is due").toContain("1 / 1");
+    await click(button("Whole deck"));
+    expect(text(), "the whole deck still holds both").toContain("1 / 2");
+  });
+
+  it("rests once nothing is due", async () => {
+    const now = Date.now();
+    localStorage.setItem("spellbook.save.v1", JSON.stringify({
+      inscribed: { varibuddy: true },
+      reviews: { varibuddy: { last: "easy", seen: 1, easy: 1, shaky: 0, lost: 0, step: 2, at: now, due: now + 3 * 86400000 } },
+    }));
+    await render();
+    await click(button("Flash Cards"));
+    expect(text()).toContain("Nothing due");
+    expect(button("Go through the whole deck")).toBeTruthy();
+  });
+});
+
 describe("saving", () => {
   it("writes progress under the current key", async () => {
     await render();

@@ -1494,17 +1494,40 @@ const GRADE = {
 };
 const GRADES = ["easy", "shaky", "lost"];
 
+// Days until a card comes back. Easy walks up the ladder, shaky stays on the
+// rung it was on, lost goes back to the bottom and turns up again today.
+const STEPS = [0, 1, 3, 7, 21, 60];
+const DAY = 86400000;
+
+function nextStep(was, grade) {
+  if (grade === "easy") return Math.min(was + 1, STEPS.length - 1);
+  if (grade === "shaky") return was;
+  return 0;
+}
+
 // A rating keeps the running counts as well as the last one, because a card
 // missed three times and passed once is not the card the last grade describes.
-function graded(prev, grade) {
-  const was = prev || { seen: 0, easy: 0, shaky: 0, lost: 0 };
-  return { ...was, last: grade, seen: was.seen + 1, [grade]: was[grade] + 1, at: Date.now() };
+function graded(prev, grade, now = Date.now()) {
+  const was = prev || { seen: 0, easy: 0, shaky: 0, lost: 0, step: 0 };
+  const step = nextStep(was.step || 0, grade);
+  return {
+    ...was, last: grade, seen: was.seen + 1, [grade]: was[grade] + 1,
+    at: now, step, due: now + STEPS[step] * DAY,
+  };
+}
+
+// Never reviewed is due now: that is the whole point of a new card.
+const isDue = (rev, now) => !rev || (rev.due || 0) <= now;
+
+function dueIn(rev, now) {
+  if (isDue(rev, now)) return "due now";
+  const days = Math.ceil((rev.due - now) / DAY);
+  return days === 1 ? "due tomorrow" : `due in ${days} days`;
 }
 const trackSchool = (c) => (c.track === "story" ? SCHOOL : WORK_SCHOOL)[c.school];
 
 // the parts of this that aren't built yet, said plainly rather than hidden
 const FLASH_SOON = [
-  ["Spaced repetition", "The ratings are kept now. Next they decide when a card comes back: shaky tomorrow, easy in a month."],
   ["Turn the card around", "Definition on the front, and you have to name the spell yourself."],
   ["Write it, don't just read it", "Type the line from memory before the back will open."],
   ["A run of ten", "One short pass, and then it tells you to stop for the day."],
@@ -1515,14 +1538,24 @@ function FlashCards({ inscribed, reviews, setReviews }) {
   const [idx, setIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [order, setOrder] = useState(null);   // null = book order, else ids in drawn order
+  const [scope, setScope] = useState("due");
+  // The deck is built once and held. Rating inside a pass must not pull the
+  // card you just answered out from under the index you are sitting on.
+  const [builtAt, setBuiltAt] = useState(() => Date.now());
+  const rebuild = () => { setBuiltAt(Date.now()); setIdx(0); setFlipped(false); };
 
   const deck = useMemo(() => {
     const inked = new Set(Object.keys(inscribed).filter((k) => inscribed[k]));
-    const pick = FLASH_DECK.filter((c) => inked.has(c.id) && (track === "all" || c.track === track));
+    let pick = FLASH_DECK.filter((c) => inked.has(c.id) && (track === "all" || c.track === track));
+    if (scope === "due") {
+      pick = pick.filter((c) => isDue(reviews[c.id], builtAt))
+        .sort((a, b) => ((reviews[a.id] || {}).due || 0) - ((reviews[b.id] || {}).due || 0));
+    }
     if (!order) return pick;
     const rank = new Map(order.map((id, i) => [id, i]));
     return pick.slice().sort((a, b) => (rank.has(a.id) ? rank.get(a.id) : 1e9) - (rank.has(b.id) ? rank.get(b.id) : 1e9));
-  }, [inscribed, track, order]);
+    // reviews and builtAt are read together on purpose: the pass is a snapshot
+  }, [inscribed, track, order, scope, builtAt]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const at = deck.length ? Math.min(idx, deck.length - 1) : 0;
   const card = deck[at];
@@ -1537,7 +1570,8 @@ function FlashCards({ inscribed, reviews, setReviews }) {
     setReviews((r) => ({ ...r, [card.id]: graded(r[card.id], grade) }));
     go(1);
   };
-  const pickTrack = (t) => { setTrack(t); setIdx(0); setFlipped(false); };
+  const pickTrack = (t) => { setTrack(t); setOrder(null); rebuild(); };
+  const pickScope = (v) => { setScope(v); setOrder(null); rebuild(); };
   const draw = () => {
     const ids = deck.map((c) => c.id);
     setOrder(shuffled(ids.length).map((i) => ids[i]));
@@ -1560,6 +1594,7 @@ function FlashCards({ inscribed, reviews, setReviews }) {
   const inkedCount = FLASH_DECK.filter((c) => inscribed[c.id]).length;
   const sc = card ? trackSchool(card) : null;
   const stand = card ? reviews[card.id] : null;
+  const dueNow = FLASH_DECK.filter((c) => inscribed[c.id] && isDue(reviews[c.id], builtAt)).length;
   const tally = (g) => deck.filter((c) => (reviews[c.id] || {}).last === g).length;
   const unrated = deck.filter((c) => !reviews[c.id]).length;
 
@@ -1578,13 +1613,18 @@ function FlashCards({ inscribed, reviews, setReviews }) {
             </div>
           </div>
           <div style={{ marginLeft: "auto", textAlign: "right" }}>
-            <div className="arc" style={{ fontSize: 12, color: INK.faint, letterSpacing: 1 }}>IN THE DECK</div>
-            <div className="arc" style={{ fontSize: 32, fontWeight: 700, color: INK.candle, lineHeight: 1.1 }}>{inkedCount}</div>
-            <div className="arc" style={{ fontSize: 13, color: INK.dim }}>of {total} spells inscribed</div>
+            <div className="arc" style={{ fontSize: 12, color: INK.faint, letterSpacing: 1 }}>DUE NOW</div>
+            <div className="arc" style={{ fontSize: 32, fontWeight: 700, color: INK.candle, lineHeight: 1.1 }}>{dueNow}</div>
+            <div className="arc" style={{ fontSize: 13, color: INK.dim }}>of {inkedCount} in the deck, {total} spells in all</div>
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 8, marginTop: 18, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 8, marginTop: 18, flexWrap: "wrap", alignItems: "center" }}>
+          <button className="chip" onClick={() => pickScope("due")} style={chipStyle(scope === "due", INK.candle)}>Due now {dueNow > 0 ? `(${dueNow})` : ""}</button>
+          <button className="chip" onClick={() => pickScope("all")} style={chipStyle(scope === "all", INK.text)}>Whole deck</button>
+        </div>
+
+        <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
           <button className="chip" onClick={() => pickTrack("all")} style={chipStyle(track === "all", INK.text)}>Both Tracks</button>
           <button className="chip" onClick={() => pickTrack("story")} style={chipStyle(track === "story", SCHOOL.inscription.color)}>Story Mode</button>
           <button className="chip" onClick={() => pickTrack("work")} style={chipStyle(track === "work", "#8a4f26")}>Working World</button>
@@ -1604,12 +1644,19 @@ function FlashCards({ inscribed, reviews, setReviews }) {
 
         {!card ? (
           <div style={{ marginTop: 20, background: INK.page, border: `1px solid ${INK.line}`, borderRadius: "2px 2px 2px 18px", padding: "34px 24px", textAlign: "center" }}>
-            <div className="arc" style={{ fontSize: 20, fontWeight: 700, color: INK.candle }}>Nothing to turn over yet.</div>
-            <div style={{ color: INK.dim, fontSize: 14.5, marginTop: 8, lineHeight: 1.5, maxWidth: 460, margin: "8px auto 0" }}>
-              {track === "all"
-                ? "Inscribe a spell in Story Mode or the Working World and it lands here as a card."
-                : `Nothing inscribed in ${TRACK_NAME[track]} yet. Finish one there, or look at both tracks.`}
+            <div className="arc" style={{ fontSize: 20, fontWeight: 700, color: INK.candle }}>
+              {inkedCount === 0 ? "Nothing to turn over yet." : scope === "due" ? "Nothing due." : "Nothing in this pile."}
             </div>
+            <div style={{ color: INK.dim, fontSize: 14.5, marginTop: 8, lineHeight: 1.5, maxWidth: 460, margin: "8px auto 0" }}>
+              {inkedCount === 0
+                ? "Inscribe a spell in Story Mode or the Working World and it lands here as a card."
+                : scope === "due"
+                  ? "You are through everything that came round today. The whole deck is still there if you want it anyway."
+                  : `Nothing inscribed in ${TRACK_NAME[track]} yet. Finish one there, or look at both tracks.`}
+            </div>
+            {inkedCount > 0 && scope === "due" && (
+              <button className="btn" onClick={() => pickScope("all")} style={{ marginTop: 14, fontSize: 13.5, color: INK.dim, border: `1px solid ${INK.line}`, borderRadius: 99, padding: "7px 16px" }}>Go through the whole deck</button>
+            )}
           </div>
         ) : (
           <div style={{ maxWidth: 520, margin: "0 auto" }}>
@@ -1634,7 +1681,10 @@ function FlashCards({ inscribed, reviews, setReviews }) {
                   <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "10px 0" }}>
                     <div className="arc" style={{ fontSize: "clamp(30px,6vw,48px)", fontWeight: 700, color: sc.color, lineHeight: 1.1 }}>{card.name}</div>
                   </div>
-                  <div className="arc" style={{ fontSize: 12.5, letterSpacing: 1, color: INK.faint, textAlign: "center" }}>TURN IT OVER</div>
+                  <div style={{ textAlign: "center" }}>
+                    {stand && <div className="arc" style={{ fontSize: 12, color: INK.faint, marginBottom: 4 }}>{dueIn(stand, builtAt)}</div>}
+                    <div className="arc" style={{ fontSize: 12.5, letterSpacing: 1, color: INK.faint }}>TURN IT OVER</div>
+                  </div>
                 </div>
 
                 {/* back: what it is, and when you reach for it */}
