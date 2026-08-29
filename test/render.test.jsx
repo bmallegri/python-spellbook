@@ -102,7 +102,7 @@ describe("the flash cards", () => {
     await render();
     await click(button("Flash Cards"));
     expect(text()).toContain("Nothing to turn over yet");
-    expect(text()).toContain("COMING SOON");
+    expect(text()).toContain("Inscribe a spell");
   });
 
   it("deals a card once a spell is inscribed", async () => {
@@ -248,6 +248,34 @@ describe("writing the line from memory", () => {
     await open();
     await click(button("Show me"));
     expect(button("Easy")).toBeTruthy();
+  });
+});
+
+describe("a run of ten", () => {
+  it("ends and says to stop", async () => {
+    localStorage.setItem("spellbook.save.v1",
+      JSON.stringify({ inscribed: { varibuddy: true, condifork: true } }));
+    await render();
+    await click(button("Flash Cards"));
+    await click(button("A run of ten"));
+    expect(text()).toContain("0 / 2 done");
+    for (let i = 0; i < 2; i++) {
+      await click(button("Flip"));
+      await click(button("Easy"));
+    }
+    expect(text()).toContain("That is your ten");
+    expect(text()).toContain("Stopping here is the point");
+  });
+
+  it("never deals more than ten at once", async () => {
+    const inscribed = {};
+    for (const s of ["varibuddy", "condifork", "listling", "comprehendra", "functo",
+                     "trycatchu", "mirrorrite", "nestedra", "argstar", "lambdaux", "sortkey"]) inscribed[s] = true;
+    localStorage.setItem("spellbook.save.v1", JSON.stringify({ inscribed }));
+    await render();
+    await click(button("Flash Cards"));
+    await click(button("A run of ten"));
+    expect(text()).toContain("0 / 10 done");
   });
 });
 

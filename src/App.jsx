@@ -1497,6 +1497,7 @@ const GRADES = ["easy", "shaky", "lost"];
 // Days until a card comes back. Easy walks up the ladder, shaky stays on the
 // rung it was on, lost goes back to the bottom and turns up again today.
 const STEPS = [0, 1, 3, 7, 21, 60];
+const RUN = 10;
 const DAY = 86400000;
 
 function nextStep(was, grade) {
@@ -1530,11 +1531,6 @@ const looseCode = (t) => t.replace(/\s+/g, " ").trim();
 
 const trackSchool = (c) => (c.track === "story" ? SCHOOL : WORK_SCHOOL)[c.school];
 
-// the parts of this that aren't built yet, said plainly rather than hidden
-const FLASH_SOON = [
-  ["A run of ten", "One short pass, and then it tells you to stop for the day."],
-];
-
 function FlashCards({ inscribed, reviews, setReviews }) {
   const [track, setTrack] = useState("all");
   const [idx, setIdx] = useState(0);
@@ -1545,17 +1541,19 @@ function FlashCards({ inscribed, reviews, setReviews }) {
   const [writing, setWriting] = useState(false);
   const [typed, setTyped] = useState("");
   const [missed, setMissed] = useState(false);
+  const [rated, setRated] = useState([]);   // graded during this pass, for the run
   // The deck is built once and held. Rating inside a pass must not pull the
   // card you just answered out from under the index you are sitting on.
   const [builtAt, setBuiltAt] = useState(() => Date.now());
-  const rebuild = () => { setBuiltAt(Date.now()); setIdx(0); setFlipped(false); };
+  const rebuild = () => { setBuiltAt(Date.now()); setIdx(0); setFlipped(false); setRated([]); setTyped(""); setMissed(false); };
 
   const deck = useMemo(() => {
     const inked = new Set(Object.keys(inscribed).filter((k) => inscribed[k]));
     let pick = FLASH_DECK.filter((c) => inked.has(c.id) && (track === "all" || c.track === track));
-    if (scope === "due") {
+    if (scope === "due" || scope === "run") {
       pick = pick.filter((c) => isDue(reviews[c.id], builtAt))
         .sort((a, b) => ((reviews[a.id] || {}).due || 0) - ((reviews[b.id] || {}).due || 0));
+      if (scope === "run") pick = pick.slice(0, RUN);
     }
     if (!order) return pick;
     const rank = new Map(order.map((id, i) => [id, i]));
@@ -1579,6 +1577,7 @@ function FlashCards({ inscribed, reviews, setReviews }) {
   const rate = (grade) => {
     if (!card) return;
     setReviews((r) => ({ ...r, [card.id]: graded(r[card.id], grade) }));
+    setRated((seen) => (seen.includes(card.id) ? seen : [...seen, card.id]));
     go(1);
   };
   const pickTrack = (t) => { setTrack(t); setOrder(null); rebuild(); };
@@ -1606,6 +1605,7 @@ function FlashCards({ inscribed, reviews, setReviews }) {
   const sc = card ? trackSchool(card) : null;
   const stand = card ? reviews[card.id] : null;
   const dueNow = FLASH_DECK.filter((c) => inscribed[c.id] && isDue(reviews[c.id], builtAt)).length;
+  const runDone = scope === "run" && deck.length > 0 && deck.every((c) => rated.includes(c.id));
   const tally = (g) => deck.filter((c) => (reviews[c.id] || {}).last === g).length;
   const unrated = deck.filter((c) => !reviews[c.id]).length;
 
@@ -1617,10 +1617,9 @@ function FlashCards({ inscribed, reviews, setReviews }) {
           <div style={{ flex: "1 1 340px" }}>
             <div className="arc" style={{ fontSize: "clamp(26px,4.5vw,42px)", fontWeight: 700, display: "flex", alignItems: "center", gap: 12 }}>
               Flash Cards
-              <span className="arc" style={{ fontSize: 11, letterSpacing: 1.4, color: INK.brass, border: `1px solid ${INK.brass}66`, borderRadius: 99, padding: "3px 9px" }}>EARLY</span>
             </div>
             <div style={{ color: INK.dim, fontSize: 15, marginTop: 8, maxWidth: 640, lineHeight: 1.5 }}>
-              The spells you have already inscribed, one at a time. The name on the front, what it does and when to reach for it on the back.
+              The spells you have already inscribed. Cards come back on a schedule: easy waits, shaky holds, lost returns today. Turn the deck around or write the line from memory.
             </div>
           </div>
           <div style={{ marginLeft: "auto", textAlign: "right" }}>
@@ -1632,6 +1631,7 @@ function FlashCards({ inscribed, reviews, setReviews }) {
 
         <div style={{ display: "flex", gap: 8, marginTop: 18, flexWrap: "wrap", alignItems: "center" }}>
           <button className="chip" onClick={() => pickScope("due")} style={chipStyle(scope === "due", INK.candle)}>Due now {dueNow > 0 ? `(${dueNow})` : ""}</button>
+          <button className="chip" onClick={() => pickScope("run")} style={chipStyle(scope === "run", INK.candle)}>A run of ten</button>
           <button className="chip" onClick={() => pickScope("all")} style={chipStyle(scope === "all", INK.text)}>Whole deck</button>
           <span style={{ width: 1, height: 22, background: INK.line, margin: "0 2px" }} />
           <button className="chip" onClick={() => { setReversed((v) => !v); setFlipped(false); }}
@@ -1658,7 +1658,20 @@ function FlashCards({ inscribed, reviews, setReviews }) {
           </div>
         )}
 
-        {!card ? (
+        {runDone ? (
+          <div style={{ marginTop: 20, background: INK.page, border: `1.5px solid ${INK.candle}`, borderRadius: "2px 2px 2px 18px", padding: "34px 24px", textAlign: "center" }}>
+            <div className="arc" style={{ fontSize: 22, fontWeight: 700, color: INK.candle }}>That is your ten.</div>
+            <div style={{ color: INK.dim, fontSize: 14.5, marginTop: 8, lineHeight: 1.5, maxWidth: 460, margin: "8px auto 0" }}>
+              Stopping here is the point. {dueNow > 0 ? `${dueNow} still due if you want them, but they will keep.` : "Nothing else is due today."}
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 16, flexWrap: "wrap" }}>
+              {dueNow > 0 && (
+                <button className="btn" onClick={() => pickScope("run")} style={{ fontSize: 13.5, fontWeight: 700, background: INK.candle, color: INK.onAccent, borderRadius: 2, padding: "9px 18px" }}>Another ten</button>
+              )}
+              <button className="btn" onClick={() => pickScope("all")} style={{ fontSize: 13.5, color: INK.dim, border: `1px solid ${INK.line}`, borderRadius: 99, padding: "8px 16px" }}>Whole deck</button>
+            </div>
+          </div>
+        ) : !card ? (
           <div style={{ marginTop: 20, background: INK.page, border: `1px solid ${INK.line}`, borderRadius: "2px 2px 2px 18px", padding: "34px 24px", textAlign: "center" }}>
             <div className="arc" style={{ fontSize: 20, fontWeight: 700, color: INK.candle }}>
               {inkedCount === 0 ? "Nothing to turn over yet." : scope === "due" ? "Nothing due." : "Nothing in this pile."}
@@ -1776,30 +1789,15 @@ function FlashCards({ inscribed, reviews, setReviews }) {
                 <button className="btn" onClick={() => setFlipped((f) => !f)} style={{ fontSize: 14, fontWeight: 700, background: INK.candle, color: INK.onAccent, borderRadius: 2, padding: "9px 20px" }}>{flipped ? "Show the word" : "Flip"}</button>
               )}
               <button className="btn" onClick={(e) => { e.stopPropagation(); go(1); }} style={{ fontSize: 13.5, color: INK.dim, border: `1px solid ${INK.line}`, borderRadius: 99, padding: "7px 16px" }}>Next</button>
-              <span className="arc mono" style={{ fontSize: 12.5, color: INK.faint, letterSpacing: 1 }}>{at + 1} / {deck.length}</span>
+              <span className="arc mono" style={{ fontSize: 12.5, color: INK.faint, letterSpacing: 1 }}>
+                {scope === "run" ? `${rated.length} / ${deck.length} done` : `${at + 1} / ${deck.length}`}
+              </span>
               <button className="btn" onClick={draw} style={{ marginLeft: "auto", fontSize: 13, color: INK.dim, border: `1px solid ${INK.line}`, borderRadius: 99, padding: "7px 16px" }}>Shuffle</button>
             </div>
             <div style={{ fontSize: 12.5, color: INK.faint, marginTop: 8 }}>Arrow keys move, space turns the card over, 1 2 3 rate it.</div>
           </div>
         )}
 
-        <div style={{ marginTop: 26, background: INK.page, border: `1px dashed ${INK.lineHi}`, borderRadius: 3, padding: "16px 18px" }}>
-          <div className="arc" style={{ fontSize: 17, fontWeight: 700, display: "flex", alignItems: "center", gap: 10 }}>
-            Not finished
-            <span className="arc" style={{ fontSize: 10.5, letterSpacing: 1.4, color: INK.brass, border: `1px solid ${INK.brass}66`, borderRadius: 99, padding: "2px 8px" }}>COMING SOON</span>
-          </div>
-          <div style={{ color: INK.dim, fontSize: 13.5, marginTop: 6, lineHeight: 1.45 }}>
-A card turns over and takes a rating now. These are the parts still to come.
-          </div>
-          <div style={{ display: "grid", gap: 8, marginTop: 14, gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))" }}>
-            {FLASH_SOON.map(([title, blurb]) => (
-              <div key={title} style={{ opacity: 0.66, background: INK.pageHi, border: `1px solid ${INK.line}`, borderRadius: 2, padding: "11px 13px" }}>
-                <div className="arc" style={{ fontSize: 14.5, fontWeight: 700, color: INK.dim }}>{title}</div>
-                <div style={{ fontSize: 12.5, color: INK.faint, marginTop: 3, lineHeight: 1.45 }}>{blurb}</div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );
